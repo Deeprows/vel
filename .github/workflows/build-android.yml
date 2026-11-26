@@ -64,7 +64,7 @@ jobs:
       - name: Export Android APK
         run: |
           mkdir -p godot_project/build
-          godot --headless --path godot_project --export-debug "Android" godot_project/build/apex_velocity_3d.apk
+          godot --headless --verbose --path godot_project --export-debug "Android" godot_project/build/apex_velocity_3d.apk
           test -s godot_project/build/apex_velocity_3d.apk
           ls -lh godot_project/build/apex_velocity_3d.apk
 
