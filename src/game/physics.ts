@@ -319,37 +319,53 @@ export function stepVehiclePhysics(
 
   // Weight transfer & aerodynamic downforce
   const longAccel = longForce / spec.mass;
-  const downforce = spec.downforceCoeff * absSpeed * absSpeed * 0.15;
+  const downforce = spec.downforceCoeff * absSpeed * absSpeed * 0.165;
   const staticWeight = spec.mass * 9.81;
   const totalNormalForce = staticWeight + downforce;
-  const weightShift = THREE.MathUtils.clamp((longAccel * 0.38) / 9.81, -0.28, 0.28);
+  const weightShift = THREE.MathUtils.clamp((longAccel * 0.42) / 9.81, -0.32, 0.32);
   const frontLoadFactor = 0.5 - weightShift;
   const rearLoadFactor = 0.5 + weightShift;
 
-  // Lateral tire & drift physics
-  // When handbrake is held or lateral slip is high, rear grip drops for smooth controllable drifts
+  // Pacejka-inspired progressive lateral tire slip & drift physics
   const slipAngle = absSpeed > 2.5 ? Math.atan2(vLat, Math.max(2.0, Math.abs(vLong))) : 0;
   const handbrakeDrift = input.handbrake && absSpeed > 10;
-  const highSlipDrift = Math.abs(slipAngle) > 0.21 && absSpeed > 14;
+  const highSlipDrift = Math.abs(slipAngle) > 0.19 && absSpeed > 13;
   v.isDrifting = handbrakeDrift || highSlipDrift;
   v.driftIntensity = v.isDrifting
-    ? THREE.MathUtils.clamp(Math.abs(slipAngle) * 1.6 + (handbrakeDrift ? 0.35 : 0), 0, 1)
+    ? THREE.MathUtils.clamp(Math.abs(slipAngle) * 1.65 + (handbrakeDrift ? 0.35 : 0), 0, 1)
     : 0;
 
-  // Lateral grip force opposing sideways velocity + yaw torque from steered front wheels
-  const effectiveRearGrip = spec.rearGrip * (handbrakeDrift ? spec.driftGripFactor * 0.72 : v.isDrifting ? spec.driftGripFactor : 1.0);
-  const effectiveFrontGrip = spec.frontGrip * (handbrakeDrift ? 0.92 : 1.0);
-  const combinedGrip = (frontLoadFactor * effectiveFrontGrip + rearLoadFactor * effectiveRearGrip) * (totalNormalForce / staticWeight);
+  // Trail-braking weight transfer boosts front turn-in bite while unloading rear slightly
+  const trailBrakeBite = 1 + Math.max(0, -weightShift) * 0.42;
+  const effectiveRearGrip =
+    spec.rearGrip *
+    (handbrakeDrift ? spec.driftGripFactor * 0.68 : v.isDrifting ? spec.driftGripFactor : 1.0);
+  const effectiveFrontGrip = spec.frontGrip * trailBrakeBite * (handbrakeDrift ? 0.94 : 1.0);
+  const combinedGrip =
+    (frontLoadFactor * effectiveFrontGrip + rearLoadFactor * effectiveRearGrip) *
+    Math.pow(totalNormalForce / staticWeight, 0.88);
 
-  // Cornering lateral acceleration & angular yaw response
-  const lateralFriction = -vLat * (handbrakeDrift ? 3.1 : v.isDrifting ? 4.3 : 7.8) * combinedGrip;
+  // Non-linear tire saturation curve: sharp initial bite that eases smoothly during sustained drifts
+  const slipMag = Math.abs(vLat);
+  const saturation = slipMag > 3.5 ? 1 / (1 + (slipMag - 3.5) * 0.045) : 1.0;
+  const lateralFriction =
+    -vLat * (handbrakeDrift ? 3.05 : v.isDrifting ? 4.4 : 8.2) * combinedGrip * saturation;
+
   const turnCurvature = Math.tan(v.steerAngle) / spec.wheelbase;
   const forwardSign = vLong >= -0.5 ? 1 : -1;
-  const targetYawRate = vLong * turnCurvature * (handbrakeDrift ? 1.48 : v.isDrifting ? 1.24 : 1.0) * forwardSign;
+  const targetYawRate =
+    vLong *
+    turnCurvature *
+    (handbrakeDrift ? 1.52 : v.isDrifting ? 1.26 : trailBrakeBite * 0.98) *
+    forwardSign;
 
-  // Responsive yaw damping (snappy turn-in, controllable drift hold)
-  const yawResponsiveness = handbrakeDrift ? 7.5 : 10.5;
-  v.angularVelocity = THREE.MathUtils.lerp(v.angularVelocity, targetYawRate, Math.min(1, dt * yawResponsiveness));
+  // Responsive yaw damping (snappy turn-in, controllable counter-steer)
+  const yawResponsiveness = handbrakeDrift ? 7.8 : 11.2;
+  v.angularVelocity = THREE.MathUtils.lerp(
+    v.angularVelocity,
+    targetYawRate,
+    Math.min(1, dt * yawResponsiveness)
+  );
 
   // Integrate yaw first for crisp response
   v.yaw += v.angularVelocity * dt;

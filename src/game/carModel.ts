@@ -157,7 +157,8 @@ export function createCarModel(
   underglowHex: string,
   contactShadowMap: THREE.Texture,
   isPlayer: boolean,
-  isSoftwareGl: boolean
+  isSoftwareGl: boolean,
+  headlightProjectionMap?: THREE.Texture
 ): CarModelRig {
   const root = new THREE.Group();
   const chassisGroup = new THREE.Group();
@@ -668,32 +669,47 @@ export function createCarModel(
   underglowMesh.position.y = 0.032;
   root.add(underglowMesh);
 
-  // 13. Player Forward Headlight Beam
+  // 13. Player Forward Headlight Beam & Dual Ground Projection
   let headlightSpot: THREE.SpotLight | undefined;
   let headlightCone: THREE.Mesh | undefined;
   if (isPlayer) {
     if (!isSoftwareGl) {
-      headlightSpot = new THREE.SpotLight(0xe0f2fe, 42, 75, Math.PI / 4.2, 0.55, 1.5);
+      headlightSpot = new THREE.SpotLight(0xe0f2fe, 56, 88, Math.PI / 4.0, 0.52, 1.45);
       headlightSpot.position.set(0, 0.65, -halfL + 0.1);
-      headlightSpot.target.position.set(0, 0, -28);
+      headlightSpot.target.position.set(0, 0, -32);
       root.add(headlightSpot);
       root.add(headlightSpot.target);
     }
 
-    const splashGeo = new THREE.PlaneGeometry(7.5, 22);
+    const splashGeo = new THREE.PlaneGeometry(8.6, 26);
     splashGeo.rotateX(-Math.PI / 2);
     const splashMat = new THREE.MeshBasicMaterial({
-      color: 0xbae6fd,
-      map: contactShadowMap,
+      color: 0xe0f2fe,
+      map: headlightProjectionMap ?? contactShadowMap,
       transparent: true,
-      opacity: 0.14,
+      opacity: headlightProjectionMap ? 0.34 : 0.15,
       blending: THREE.AdditiveBlending,
       depthWrite: false,
     });
     headlightCone = new THREE.Mesh(splashGeo, splashMat);
-    headlightCone.position.set(0, 0.04, -halfL - 10.5);
+    headlightCone.position.set(0, 0.042, -halfL - 12.6);
     root.add(headlightCone);
   }
+
+  // 14. Dynamic Rear Brake Light Ground Wash
+  const tailWashGeo = new THREE.PlaneGeometry(spec.width * 1.35, 3.2);
+  tailWashGeo.rotateX(-Math.PI / 2);
+  const tailWashMat = new THREE.MeshBasicMaterial({
+    color: 0xff2222,
+    map: contactShadowMap,
+    transparent: true,
+    opacity: 0.16,
+    blending: THREE.AdditiveBlending,
+    depthWrite: false,
+  });
+  const tailWash = new THREE.Mesh(tailWashGeo, tailWashMat);
+  tailWash.position.set(0, 0.036, halfL + 1.15);
+  root.add(tailWash);
 
   let nosFlicker = 0;
 
@@ -731,8 +747,9 @@ export function createCarModel(
         w.rotation.x = -wheelSpinAngle;
       }
 
-      tailLightMaterial.emissiveIntensity = 1.2 + brakeIntensity * 3.8;
-      const heat = brakeIntensity > 0.25 && speedMs > 12 ? brakeIntensity * 1.8 : 0;
+      tailLightMaterial.emissiveIntensity = 1.35 + brakeIntensity * 4.2;
+      tailWashMat.opacity = 0.12 + brakeIntensity * 0.36;
+      const heat = brakeIntensity > 0.25 && speedMs > 12 ? brakeIntensity * 1.9 : 0;
       brakeDiscMaterial.emissiveIntensity = THREE.MathUtils.lerp(
         brakeDiscMaterial.emissiveIntensity,
         heat,

@@ -240,14 +240,30 @@ export function createStreetTrack(
   roadGeo.setAttribute('uv', new THREE.Float32BufferAttribute(roadUvs, 2));
   roadGeo.setIndex(roadIndices);
 
-  const roadMat = new THREE.MeshStandardMaterial({
-    color: new THREE.Color(definition.roadTintHex),
-    map: textures.asphaltMap,
-    roughnessMap: textures.asphaltRoughnessMap,
-    roughness: 0.72,
-    metalness: 0.22,
-    envMapIntensity: 1.2,
-  });
+  const roadMat = isSoftwareGl
+    ? new THREE.MeshStandardMaterial({
+        color: new THREE.Color(definition.roadTintHex),
+        map: textures.asphaltMap,
+        normalMap: textures.asphaltNormalMap,
+        normalScale: new THREE.Vector2(0.45, 0.45),
+        roughnessMap: textures.asphaltRoughnessMap,
+        roughness: 0.68,
+        metalness: 0.25,
+        envMapIntensity: 1.35,
+      })
+    : new THREE.MeshPhysicalMaterial({
+        color: new THREE.Color(definition.roadTintHex),
+        map: textures.asphaltMap,
+        normalMap: textures.asphaltNormalMap,
+        normalScale: new THREE.Vector2(0.55, 0.55),
+        roughnessMap: textures.asphaltRoughnessMap,
+        roughness: 0.65,
+        metalness: 0.22,
+        clearcoat: 0.34,
+        clearcoatRoughness: 0.38,
+        clearcoatRoughnessMap: textures.asphaltRoughnessMap,
+        envMapIntensity: 1.55,
+      });
   const roadMesh = new THREE.Mesh(roadGeo, roadMat);
   roadMesh.receiveShadow = true;
   group.add(roadMesh);

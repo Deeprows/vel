@@ -1,11 +1,10 @@
 import * as THREE from 'three';
-import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { CARS, PAINTS, UNDERGLOWS } from './cars';
 import { createCarModel, CarModelRig } from './carModel';
-import { createProceduralTextures, ProceduralTextureSet } from './textures';
+import { createProceduralTextures, createSkyReflectionTexture, ProceduralTextureSet } from './textures';
 import { createStreetTrack, TrackData } from './track';
 import {
   computeAiInput,
@@ -155,6 +154,15 @@ export class RacingGameEngine {
   private sparkPool: SparkParticle[] = [];
   private sparkCursor = 0;
 
+  // Pooled Tire Skidmarks
+  private skidInst: THREE.InstancedMesh;
+  private skidCursor = 0;
+  private skidAccum = 0;
+
+  // Procedural Sky Dome & PMREM Environment
+  private skyBgTex: THREE.Texture | null = null;
+  private envRT: THREE.WebGLRenderTarget | null = null;
+
   constructor(container: HTMLElement, callbacks: EngineCallbacks) {
     this.container = container;
     this.callbacks = callbacks;
@@ -194,16 +202,10 @@ export class RacingGameEngine {
     this.renderer.domElement.addEventListener('webglcontextlost', this.handleContextLost);
     this.renderer.domElement.addEventListener('webglcontextrestored', this.handleContextRestored);
 
-    // Scene & Fog
+    // Scene & Fog (sky dome + PMREM reflections populated in applyTrackAtmosphere)
     this.scene = new THREE.Scene();
-    const skyColor = new THREE.Color(0x080b12);
-    this.scene.background = skyColor;
+    this.scene.background = new THREE.Color(0x080b12);
     this.scene.fog = new THREE.FogExp2(0x080b12, 0.0022);
-
-    // Studio Environment Reflections for clearcoat car paint
-    const pmremGenerator = new THREE.PMREMGenerator(this.renderer);
-    this.scene.environment = pmremGenerator.fromScene(new RoomEnvironment(), 0.04).texture;
-    pmremGenerator.dispose();
 
     // Camera
     this.camera = new THREE.PerspectiveCamera(62, width / height, 0.25, 950);
@@ -283,11 +285,29 @@ export class RacingGameEngine {
     this.sparkInst.instanceMatrix.needsUpdate = true;
     this.scene.add(this.sparkInst);
 
+    // Pooled Tire Drift & Braking Skidmarks
+    const skidCount = 420;
+    const skidGeo = new THREE.PlaneGeometry(0.32, 0.92);
+    skidGeo.rotateX(-Math.PI / 2);
+    const skidMat = new THREE.MeshBasicMaterial({
+      color: 0x05070a,
+      transparent: true,
+      opacity: 0.48,
+      depthWrite: false,
+      polygonOffset: true,
+      polygonOffsetFactor: -2,
+      polygonOffsetUnits: -2,
+    });
+    this.skidInst = new THREE.InstancedMesh(skidGeo, skidMat, skidCount);
+    this.skidInst.frustumCulled = false;
+    this.resetSkidmarks();
+    this.scene.add(this.skidInst);
+
     // Post-processing Bloom on GPU devices (skipped on software WebGL)
     if (!this.isSoftwareGl) {
       this.composer = new EffectComposer(this.renderer);
       this.composer.addPass(new RenderPass(this.scene, this.camera));
-      this.bloomPass = new UnrealBloomPass(new THREE.Vector2(width, height), 0.34, 0.35, 0.86);
+      this.bloomPass = new UnrealBloomPass(new THREE.Vector2(width, height), 0.42, 0.38, 0.82);
       this.composer.addPass(this.bloomPass);
     }
 
@@ -362,7 +382,8 @@ export class RacingGameEngine {
       underglow.hex,
       this.textures.contactShadowMap,
       true,
-      this.isSoftwareGl
+      this.isSoftwareGl,
+      this.textures.headlightProjectionMap
     );
     this.scene.add(playerRig.root);
     this.carRigs.set(player.id, playerRig);
@@ -424,8 +445,45 @@ export class RacingGameEngine {
 
   private applyTrackAtmosphere(): void {
     const def = this.track.definition;
-    this.scene.background = new THREE.Color(def.skyHex);
+    this.skyBgTex?.dispose();
+    this.envRT?.dispose();
+
+    const skyTex = createSkyReflectionTexture(def.skyHex, def.accentHex);
+    this.skyBgTex = skyTex;
+    this.scene.background = skyTex;
+    this.scene.backgroundBlurriness = 0.04;
     this.scene.fog = new THREE.FogExp2(def.fogHex, def.fogDensity);
+
+    const pmremGenerator = new THREE.PMREMGenerator(this.renderer);
+    pmremGenerator.compileEquirectangularShader();
+    this.envRT = pmremGenerator.fromEquirectangular(skyTex);
+    this.scene.environment = this.envRT.texture;
+    pmremGenerator.dispose();
+  }
+
+  private resetSkidmarks(): void {
+    this.skidCursor = 0;
+    this.skidAccum = 0;
+    const count = this.skidInst.count;
+    _dummy.position.set(0, -50, 0);
+    _dummy.rotation.set(0, 0, 0);
+    _dummy.scale.setScalar(0.001);
+    _dummy.updateMatrix();
+    for (let i = 0; i < count; i++) {
+      this.skidInst.setMatrixAt(i, _dummy.matrix);
+    }
+    this.skidInst.instanceMatrix.needsUpdate = true;
+  }
+
+  private spawnSkidmark(x: number, y: number, z: number, yaw: number, widthScale = 1): void {
+    const idx = this.skidCursor;
+    this.skidCursor = (this.skidCursor + 1) % this.skidInst.count;
+    _dummy.position.set(x, y + 0.032, z);
+    _dummy.rotation.set(0, yaw, 0);
+    _dummy.scale.set(widthScale, 1, 1);
+    _dummy.updateMatrix();
+    this.skidInst.setMatrixAt(idx, _dummy.matrix);
+    this.skidInst.instanceMatrix.needsUpdate = true;
   }
 
   public setTrack(trackId: TrackId): { minimapPoints: { x: number; y: number }[] } {
@@ -482,6 +540,7 @@ export class RacingGameEngine {
     this.replayPaused = false;
     this.replaySpeed = 1;
     this.cameraMode = 'cinematic';
+    this.resetSkidmarks();
     this.lastTime = performance.now();
     this.applyReplayAtTime(0, 0.016);
     this.emitHud();
@@ -608,21 +667,39 @@ export class RacingGameEngine {
         });
       }
 
-      if (!this.replayPaused && v.isDrifting && Math.random() < 0.65) {
+      if (!this.replayPaused && v.isDrifting) {
         const rearOffset = v.spec.wheelbase * 0.5;
         const fwdX = -Math.sin(v.yaw);
         const fwdZ = -Math.cos(v.yaw);
         const rightX = Math.cos(v.yaw);
         const rightZ = -Math.sin(v.yaw);
-        const side = Math.random() > 0.5 ? 0.85 : -0.85;
-        this.spawnSmoke(
-          v.x - fwdX * rearOffset + rightX * side,
-          v.y,
-          v.z - fwdZ * rearOffset + rightZ * side,
-          fwdX * v.forwardSpeed,
-          fwdZ * v.forwardSpeed,
-          0.9 + v.driftIntensity * 0.8
-        );
+        if (v.speedKmh > 25) {
+          this.spawnSkidmark(
+            v.x - fwdX * rearOffset - rightX * 0.82,
+            v.y,
+            v.z - fwdZ * rearOffset - rightZ * 0.82,
+            v.yaw,
+            0.9 + v.driftIntensity * 0.45
+          );
+          this.spawnSkidmark(
+            v.x - fwdX * rearOffset + rightX * 0.82,
+            v.y,
+            v.z - fwdZ * rearOffset + rightZ * 0.82,
+            v.yaw,
+            0.9 + v.driftIntensity * 0.45
+          );
+        }
+        if (Math.random() < 0.65) {
+          const side = Math.random() > 0.5 ? 0.85 : -0.85;
+          this.spawnSmoke(
+            v.x - fwdX * rearOffset + rightX * side,
+            v.y,
+            v.z - fwdZ * rearOffset + rightZ * side,
+            fwdX * v.forwardSpeed,
+            fwdZ * v.forwardSpeed,
+            0.9 + v.driftIntensity * 0.8
+          );
+        }
       }
     }
 
@@ -720,6 +797,7 @@ export class RacingGameEngine {
     this.replayFrames = [];
     this.replayRecordAccum = 0;
     this.cameraMode = 'chase';
+    this.resetSkidmarks();
     this.setupVehiclesForPhase('countdown');
     this.emitHud();
   }
@@ -751,6 +829,7 @@ export class RacingGameEngine {
     this.replayFrames = [];
     this.replayRecordAccum = 0;
     this.cameraMode = 'chase';
+    this.resetSkidmarks();
 
     this.clearCars();
 
@@ -792,7 +871,8 @@ export class RacingGameEngine {
         underglow.hex,
         this.textures.contactShadowMap,
         isLocal,
-        this.isSoftwareGl
+        this.isSoftwareGl,
+        isLocal ? this.textures.headlightProjectionMap : undefined
       );
       this.scene.add(rig.root);
       this.carRigs.set(v.id, rig);
@@ -873,6 +953,7 @@ export class RacingGameEngine {
     this.isMultiplayer = false;
     this.remoteTargets.clear();
     this.phase = 'garage';
+    this.resetSkidmarks();
     this.audio.updateTelemetry({
       active: false,
       rpm: 950,
@@ -1167,6 +1248,10 @@ export class RacingGameEngine {
       }
 
       // Sync visual car rigs & spawn particles
+      this.skidAccum += dt;
+      const emitSkids = this.skidAccum >= 0.028;
+      if (emitSkids) this.skidAccum = 0;
+
       for (const v of this.vehicles) {
         const rig = this.carRigs.get(v.id);
         if (!rig) continue;
@@ -1191,6 +1276,30 @@ export class RacingGameEngine {
           dt,
           wheelSpinAngle: v.wheelSpinAngle,
         });
+
+        // Twin rear tire skidmarks during drift or hard braking
+        if (emitSkids && ((v.isDrifting && v.speedKmh > 25) || (brakeAmt > 0.65 && v.speedKmh > 45))) {
+          const rearOffset = v.spec.wheelbase * 0.5;
+          const fwdX = -Math.sin(v.yaw);
+          const fwdZ = -Math.cos(v.yaw);
+          const rightX = Math.cos(v.yaw);
+          const rightZ = -Math.sin(v.yaw);
+          const widthScale = v.isDrifting ? 0.95 + v.driftIntensity * 0.45 : 0.85;
+          this.spawnSkidmark(
+            v.x - fwdX * rearOffset - rightX * 0.82,
+            v.y,
+            v.z - fwdZ * rearOffset - rightZ * 0.82,
+            v.yaw,
+            widthScale
+          );
+          this.spawnSkidmark(
+            v.x - fwdX * rearOffset + rightX * 0.82,
+            v.y,
+            v.z - fwdZ * rearOffset + rightZ * 0.82,
+            v.yaw,
+            widthScale
+          );
+        }
 
         // Tire drift smoke
         if (v.isDrifting && Math.random() < 0.72) {
@@ -1527,10 +1636,14 @@ export class RacingGameEngine {
     this.clearCars();
     this.track.dispose();
     this.textures.dispose();
+    this.skyBgTex?.dispose();
+    this.envRT?.dispose();
     this.smokeInst.geometry.dispose();
     (this.smokeInst.material as THREE.Material).dispose();
     this.sparkInst.geometry.dispose();
     (this.sparkInst.material as THREE.Material).dispose();
+    this.skidInst.geometry.dispose();
+    (this.skidInst.material as THREE.Material).dispose();
     this.audio.dispose();
 
     if (this.composer) {

@@ -2,13 +2,86 @@ import * as THREE from 'three';
 
 export interface ProceduralTextureSet {
   asphaltMap: THREE.CanvasTexture;
+  asphaltNormalMap: THREE.CanvasTexture;
   asphaltRoughnessMap: THREE.CanvasTexture;
   kerbMap: THREE.CanvasTexture;
   buildingFacadeMap: THREE.CanvasTexture;
   gantryBannerMap: THREE.CanvasTexture;
   smokeMap: THREE.CanvasTexture;
   contactShadowMap: THREE.CanvasTexture;
+  headlightProjectionMap: THREE.CanvasTexture;
   dispose: () => void;
+}
+
+export function createSkyReflectionTexture(
+  skyHex: string,
+  accentHex: string
+): THREE.CanvasTexture {
+  const w = 1024;
+  const h = 512;
+  const canvas = document.createElement('canvas');
+  canvas.width = w;
+  canvas.height = h;
+  const ctx = canvas.getContext('2d')!;
+
+  // Rich twilight/night atmospheric gradient
+  const skyGrad = ctx.createLinearGradient(0, 0, 0, h);
+  skyGrad.addColorStop(0.0, '#02040a');
+  skyGrad.addColorStop(0.32, skyHex);
+  skyGrad.addColorStop(0.49, accentHex);
+  skyGrad.addColorStop(0.515, '#1e293b');
+  skyGrad.addColorStop(0.75, '#090d16');
+  skyGrad.addColorStop(1.0, '#04060c');
+  ctx.fillStyle = skyGrad;
+  ctx.fillRect(0, 0, w, h);
+
+  // Subtle horizon atmospheric bloom band
+  const glowGrad = ctx.createRadialGradient(w * 0.52, h * 0.48, 12, w * 0.52, h * 0.48, w * 0.38);
+  glowGrad.addColorStop(0, 'rgba(255, 225, 175, 0.42)');
+  glowGrad.addColorStop(0.45, 'rgba(56, 189, 248, 0.14)');
+  glowGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+  ctx.fillStyle = glowGrad;
+  ctx.fillRect(0, 0, w, h);
+
+  // Distant stars in upper sky dome
+  for (let i = 0; i < 240; i++) {
+    const sx = ((i * 7919) % w);
+    const sy = ((i * 3571) % Math.floor(h * 0.42));
+    const alpha = 0.2 + ((i * 17) % 10) * 0.07;
+    ctx.fillStyle = `rgba(226, 232, 240, ${alpha.toFixed(2)})`;
+    ctx.fillRect(sx, sy, i % 5 === 0 ? 2 : 1, i % 5 === 0 ? 2 : 1);
+  }
+
+  // Soft overhead studio/highway reflection streaks for crisp car clearcoat highlights
+  ctx.fillStyle = 'rgba(248, 250, 252, 0.65)';
+  for (let i = 0; i < 6; i++) {
+    const rx = (i / 6) * w + 32;
+    ctx.fillRect(rx, h * 0.16, 78, 6);
+  }
+  ctx.fillStyle = 'rgba(251, 191, 36, 0.45)';
+  for (let i = 0; i < 12; i++) {
+    const rx = (i / 12) * w + 16;
+    ctx.fillRect(rx, h * 0.455, 28, 4);
+  }
+
+  // Distant mountain / skyline silhouette along horizon
+  ctx.fillStyle = '#070a12';
+  ctx.beginPath();
+  ctx.moveTo(0, h * 0.51);
+  for (let x = 0; x <= w; x += 24) {
+    const ridge = Math.sin(x * 0.018) * 10 + Math.cos(x * 0.043) * 6;
+    ctx.lineTo(x, h * 0.495 - Math.abs(ridge));
+  }
+  ctx.lineTo(w, h * 0.54);
+  ctx.lineTo(0, h * 0.54);
+  ctx.closePath();
+  ctx.fill();
+
+  const tex = new THREE.CanvasTexture(canvas);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  tex.mapping = THREE.EquirectangularReflectionMapping;
+  tex.needsUpdate = true;
+  return tex;
 }
 
 export function createProceduralTextures(maxAnisotropy: number): ProceduralTextureSet {
@@ -24,7 +97,7 @@ export function createProceduralTextures(maxAnisotropy: number): ProceduralTextu
   rctx.fillRect(0, 0, 512, 512);
 
   // Subtle asphalt aggregate grain
-  for (let i = 0; i < 18000; i++) {
+  for (let i = 0; i < 20000; i++) {
     const x = Math.random() * 512;
     const y = Math.random() * 512;
     const v = 16 + Math.floor(Math.random() * 24);
@@ -68,21 +141,43 @@ export function createProceduralTextures(maxAnisotropy: number): ProceduralTextu
   asphaltMap.wrapT = THREE.RepeatWrapping;
   asphaltMap.anisotropy = aniso;
 
+  // 1b. Tactile Asphalt Normal Map (micro aggregate grain for specular highlights)
+  const normCanvas = document.createElement('canvas');
+  normCanvas.width = 256;
+  normCanvas.height = 256;
+  const nctx = normCanvas.getContext('2d')!;
+  const imgData = nctx.createImageData(256, 256);
+  const d = imgData.data;
+  for (let i = 0; i < 256 * 256; i++) {
+    const idx = i * 4;
+    const nx = Math.floor(128 + (Math.random() - 0.5) * 38);
+    const ny = Math.floor(128 + (Math.random() - 0.5) * 38);
+    d[idx] = nx;
+    d[idx + 1] = ny;
+    d[idx + 2] = 248;
+    d[idx + 3] = 255;
+  }
+  nctx.putImageData(imgData, 0, 0);
+  const asphaltNormalMap = new THREE.CanvasTexture(normCanvas);
+  asphaltNormalMap.wrapS = THREE.RepeatWrapping;
+  asphaltNormalMap.wrapT = THREE.RepeatWrapping;
+  asphaltNormalMap.anisotropy = aniso;
+
   // 2. Damp Asphalt Roughness Map (glossy wet patches + rougher aggregate)
   const roughCanvas = document.createElement('canvas');
   roughCanvas.width = 256;
   roughCanvas.height = 256;
   const rgCtx = roughCanvas.getContext('2d')!;
-  rgCtx.fillStyle = '#787878';
+  rgCtx.fillStyle = '#6c6c6c';
   rgCtx.fillRect(0, 0, 256, 256);
-  for (let i = 0; i < 65; i++) {
+  for (let i = 0; i < 75; i++) {
     const px = Math.random() * 256;
     const py = Math.random() * 256;
     const rad = 18 + Math.random() * 44;
     const g = rgCtx.createRadialGradient(px, py, 2, px, py, rad);
-    const wet = Math.random() > 0.35;
-    g.addColorStop(0, wet ? 'rgba(28,28,28,0.65)' : 'rgba(165,165,165,0.45)');
-    g.addColorStop(1, 'rgba(120,120,120,0)');
+    const wet = Math.random() > 0.32;
+    g.addColorStop(0, wet ? 'rgba(20,20,20,0.72)' : 'rgba(165,165,165,0.45)');
+    g.addColorStop(1, 'rgba(110,110,110,0)');
     rgCtx.fillStyle = g;
     rgCtx.fillRect(px - rad, py - rad, rad * 2, rad * 2);
   }
@@ -147,7 +242,6 @@ export function createProceduralTextures(maxAnisotropy: number): ProceduralTextu
   const gctx = gCanvas.getContext('2d')!;
   gctx.fillStyle = '#0b0f19';
   gctx.fillRect(0, 0, 1024, 256);
-  // Checkered borders
   const sq = 32;
   for (let x = 0; x < 1024; x += sq) {
     for (let y = 0; y < 64; y += sq) {
@@ -175,7 +269,7 @@ export function createProceduralTextures(maxAnisotropy: number): ProceduralTextu
   sCanvas.height = 128;
   const sctx = sCanvas.getContext('2d')!;
   const sGrad = sctx.createRadialGradient(64, 64, 4, 64, 64, 60);
-  sGrad.addColorStop(0, 'rgba(226, 232, 240, 0.75)');
+  sGrad.addColorStop(0, 'rgba(226, 232, 240, 0.78)');
   sGrad.addColorStop(0.45, 'rgba(148, 163, 184, 0.35)');
   sGrad.addColorStop(1, 'rgba(148, 163, 184, 0)');
   sctx.fillStyle = sGrad;
@@ -189,29 +283,57 @@ export function createProceduralTextures(maxAnisotropy: number): ProceduralTextu
   cCanvas.height = 256;
   const cctx = cCanvas.getContext('2d')!;
   const cGrad = cctx.createRadialGradient(128, 128, 18, 128, 128, 122);
-  cGrad.addColorStop(0, 'rgba(0, 0, 0, 0.85)');
-  cGrad.addColorStop(0.55, 'rgba(0, 0, 0, 0.45)');
+  cGrad.addColorStop(0, 'rgba(0, 0, 0, 0.88)');
+  cGrad.addColorStop(0.55, 'rgba(0, 0, 0, 0.48)');
   cGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
   cctx.fillStyle = cGrad;
   cctx.fillRect(0, 0, 256, 256);
   const contactShadowMap = new THREE.CanvasTexture(cCanvas);
 
+  // 8. Dual-Beam Headlight Ground Projection Map
+  const hCanvas = document.createElement('canvas');
+  hCanvas.width = 256;
+  hCanvas.height = 256;
+  const hctx = hCanvas.getContext('2d')!;
+  hctx.clearRect(0, 0, 256, 256);
+  for (const bx of [86, 170]) {
+    const grad = hctx.createRadialGradient(bx, 245, 6, bx, 120, 130);
+    grad.addColorStop(0, 'rgba(240, 249, 255, 0.92)');
+    grad.addColorStop(0.45, 'rgba(186, 230, 253, 0.42)');
+    grad.addColorStop(1, 'rgba(186, 230, 253, 0)');
+    hctx.fillStyle = grad;
+    hctx.beginPath();
+    hctx.moveTo(bx - 12, 256);
+    hctx.lineTo(bx + 12, 256);
+    hctx.lineTo(bx + 64, 0);
+    hctx.lineTo(bx - 64, 0);
+    hctx.closePath();
+    hctx.fill();
+  }
+  const headlightProjectionMap = new THREE.CanvasTexture(hCanvas);
+  headlightProjectionMap.colorSpace = THREE.SRGBColorSpace;
+
   return {
     asphaltMap,
+    asphaltNormalMap,
     asphaltRoughnessMap,
     kerbMap,
     buildingFacadeMap,
     gantryBannerMap,
     smokeMap,
     contactShadowMap,
+    headlightProjectionMap,
     dispose: () => {
       asphaltMap.dispose();
+      asphaltNormalMap.dispose();
       asphaltRoughnessMap.dispose();
       kerbMap.dispose();
       buildingFacadeMap.dispose();
       gantryBannerMap.dispose();
       smokeMap.dispose();
       contactShadowMap.dispose();
+      headlightProjectionMap.dispose();
     },
   };
 }
+
