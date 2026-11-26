@@ -12,6 +12,8 @@ export const WeatherPostShader = {
     uRainIntensity: { value: 0 },
     uFogIntensity: { value: 0 },
     uSpeedNorm: { value: 0 },
+    uSpeedKmh: { value: 0 },
+    uAcceleration: { value: 0 },
     uFogColor: { value: new THREE.Color(0x0c1320) },
   },
   vertexShader: /* glsl */ `
@@ -27,6 +29,8 @@ export const WeatherPostShader = {
     uniform float uRainIntensity;
     uniform float uFogIntensity;
     uniform float uSpeedNorm;
+    uniform float uSpeedKmh;
+    uniform float uAcceleration;
     uniform vec3 uFogColor;
     varying vec2 vUv;
 
@@ -72,6 +76,26 @@ export const WeatherPostShader = {
 
       vec4 baseSample = texture2D(tDiffuse, clamp(uv + dropOffset, 0.001, 0.999));
       vec3 col = baseSample.rgb;
+
+      // Speed lines / motion streaks when speed > 180 km/h
+      if (uSpeedKmh > 180.0) {
+        float speedOver = uSpeedKmh - 180.0;
+        float speedFactor = clamp(speedOver / 170.0, 0.0, 1.0);
+        float accelFactor = clamp((uAcceleration + 2.0) / 10.0, 0.25, 1.75);
+        float streakIntensity = speedFactor * accelFactor;
+
+        vec2 centerDir = uv - 0.5;
+        float distCenter = length(centerDir);
+        vec2 dirNorm = normalize(centerDir + 0.0001);
+
+        float angle = atan(dirNorm.y, dirNorm.x);
+        float streakNoise = hash21(vec2(angle * 22.0, floor(distCenter * 50.0 - uTime * 35.0)));
+
+        if (streakNoise > 0.7 && distCenter > 0.18 && distCenter < 0.92) {
+          float lineAlpha = (streakNoise - 0.7) / 0.3 * streakIntensity * smoothstep(0.18, 0.38, distCenter) * smoothstep(0.92, 0.65, distCenter);
+          col += vec3(0.65, 0.88, 1.0) * lineAlpha * 0.72;
+        }
+      }
 
       // Subtle cool wet grading & specular droplet glint during rain
       if (uRainIntensity > 0.01) {

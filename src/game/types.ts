@@ -14,7 +14,9 @@ export type TrackId =
   | 'neon_docks'
   | 'tokyo_neon'
   | 'miami_strip'
-  | 'alpine_pass';
+  | 'alpine_pass'
+  | 'london_underground'
+  | 'chicago_loop';
 
 export type RaceMode = 'circuit' | 'time_attack';
 

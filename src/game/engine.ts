@@ -130,6 +130,7 @@ export class RacingGameEngine {
   private bestLapMs: number | null = null;
   private lastTrackedLap = 1;
   private topSpeedKmh = 0;
+  private lastPlayerSpeed = 0;
   private totalDriftScore = 0;
   private activeDriftPoints = 0;
   private driftBankTimer = 0;
@@ -1800,6 +1801,10 @@ export class RacingGameEngine {
     if (this.weatherPass) {
       this.weatherPass.uniforms.uTime.value = this.weatherTime;
       this.weatherPass.uniforms.uSpeedNorm.value = activePlayerSpeedNorm;
+      this.weatherPass.uniforms.uSpeedKmh.value = player ? player.speedKmh : 0;
+      const accel = player && dt > 0 ? (player.forwardSpeed - this.lastPlayerSpeed) / dt : 0;
+      this.weatherPass.uniforms.uAcceleration.value = accel;
+      if (player) this.lastPlayerSpeed = player.forwardSpeed;
     }
     if (this.weather === 'light_rain' && this.phase !== 'garage' && this.phase !== 'paused') {
       const cx = this.camera.position.x;

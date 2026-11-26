@@ -110,7 +110,17 @@ export const GarageOverlay: React.FC<GarageOverlayProps> = ({
   const resetLabel = getTimeUntilDailyResetLabel();
 
   return (
-    <div className="pointer-events-none fixed inset-0 z-10 flex flex-col justify-between p-3 sm:p-6">
+    <div className="pointer-events-none fixed inset-0 z-10 flex flex-col justify-between p-3 sm:p-6 animate-[fadeIn_0.35s_cubic-bezier(0.16,1,0.3,1)]">
+      <style>{`
+        @keyframes fadeIn {
+          from { opacity: 0; transform: translateY(8px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes slideUp {
+          from { opacity: 0; transform: translateY(16px) scale(0.98); }
+          to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+      `}</style>
       {/* Minimal Top Bar */}
       <header className="pointer-events-auto flex items-center justify-between gap-2 sm:gap-3">
         <div className="bg-[#0B0F19]/88 border border-white/10 rounded-xl px-3.5 sm:px-4 py-2.5 flex items-center gap-3 sm:gap-4 min-w-0">
@@ -211,7 +221,7 @@ export const GarageOverlay: React.FC<GarageOverlayProps> = ({
         </button>
 
         {!collapsed && (
-          <div className="w-full max-h-[68vh] overflow-y-auto bg-[#0B0F19]/92 border border-white/12 rounded-2xl p-3 sm:p-4 shadow-2xl">
+          <div className="w-full max-h-[68vh] overflow-y-auto bg-[#0B0F19]/92 border border-white/12 rounded-2xl p-3 sm:p-4 shadow-2xl animate-[slideUp_0.3s_cubic-bezier(0.16,1,0.3,1)]">
             {/* Race Type Bar: User vs Computer | User vs User Online | Same Wi-Fi */}
             <div className="grid grid-cols-3 gap-1.5 sm:gap-2 pb-2.5 mb-2.5 border-b border-white/10">
               <button
@@ -327,7 +337,7 @@ export const GarageOverlay: React.FC<GarageOverlayProps> = ({
             </div>
 
             {/* Tab Content */}
-            <div className="pt-3">
+            <div key={tab} className="pt-3 animate-[fadeIn_0.25s_ease-out]">
               {tab === 'vehicle' && (
                 <div className="space-y-2.5">
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 max-h-[240px] sm:max-h-[250px] overflow-y-auto pr-1">

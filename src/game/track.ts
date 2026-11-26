@@ -81,6 +81,32 @@ export const TRACKS: TrackDefinition[] = [
     groundHex: '#070A17',
     roadTintHex: '#E2E8F0',
   },
+  {
+    id: 'london_underground',
+    name: 'London Metropolis',
+    location: 'Thames & City Loop',
+    lengthLabel: '2.35 km',
+    difficulty: 'Technical',
+    skyHex: '#0B101D',
+    fogHex: '#0B101D',
+    fogDensity: 0.0022,
+    accentHex: '#6366F1',
+    groundHex: '#070A14',
+    roadTintHex: '#E0E7FF',
+  },
+  {
+    id: 'chicago_loop',
+    name: 'Chicago Elevated',
+    location: 'Windy City Skyline',
+    lengthLabel: '2.10 km',
+    difficulty: 'High Speed',
+    skyHex: '#08121A',
+    fogHex: '#08121A',
+    fogDensity: 0.0021,
+    accentHex: '#10B981',
+    groundHex: '#040B10',
+    roadTintHex: '#D1FAE5',
+  },
 ];
 
 export function getTrackDefinition(trackId: TrackId): TrackDefinition {
@@ -88,6 +114,37 @@ export function getTrackDefinition(trackId: TrackId): TrackDefinition {
 }
 
 function getControlPointsForTrack(trackId: TrackId): THREE.Vector3[] {
+  if (trackId === 'london_underground') {
+    return [
+      new THREE.Vector3(0, 0, 0),
+      new THREE.Vector3(50, 1.0, -160),
+      new THREE.Vector3(170, 4.0, -260),
+      new THREE.Vector3(290, 2.5, -190),
+      new THREE.Vector3(340, 1.0, -80),
+      new THREE.Vector3(260, 3.5, 20),
+      new THREE.Vector3(330, 6.0, 130),
+      new THREE.Vector3(280, 4.0, 250),
+      new THREE.Vector3(140, 2.0, 220),
+      new THREE.Vector3(-30, 0.5, 140),
+    ];
+  }
+
+  if (trackId === 'chicago_loop') {
+    return [
+      new THREE.Vector3(0, 0, 0),
+      new THREE.Vector3(0, 0.5, -180),
+      new THREE.Vector3(130, 3.0, -270),
+      new THREE.Vector3(270, 5.5, -210),
+      new THREE.Vector3(320, 3.5, -90),
+      new THREE.Vector3(210, 1.5, -10),
+      new THREE.Vector3(290, 4.0, 100),
+      new THREE.Vector3(350, 7.0, 220),
+      new THREE.Vector3(200, 4.5, 300),
+      new THREE.Vector3(80, 2.0, 220),
+      new THREE.Vector3(-50, 0.5, 130),
+    ];
+  }
+
   if (trackId === 'tokyo_neon') {
     return [
       new THREE.Vector3(0, 0, 0),

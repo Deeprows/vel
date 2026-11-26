@@ -154,32 +154,32 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
             })}
           </div>
 
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <div className="flex items-center gap-1 p-1 bg-slate-900 rounded-xl border border-white/8">
-              <button
-                type="button"
-                onClick={() => setCategory('laps')}
-                className={`min-h-[38px] px-3.5 py-1 rounded-lg text-xs font-semibold transition-colors whitespace-nowrap ${
-                  category === 'laps'
-                    ? 'bg-cyan-500 text-slate-950'
-                    : 'text-slate-300 hover:text-white'
-                }`}
-              >
-                Top Lap Times
-              </button>
-              <button
-                type="button"
-                onClick={() => setCategory('drifts')}
-                className={`min-h-[38px] px-3.5 py-1 rounded-lg text-xs font-semibold transition-colors whitespace-nowrap ${
-                  category === 'drifts'
-                    ? 'bg-amber-500 text-slate-950'
-                    : 'text-slate-300 hover:text-white'
-                }`}
-              >
-                High Drift Scores
-              </button>
-            </div>
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              type="button"
+              onClick={() => setCategory('laps')}
+              className={`min-h-[42px] px-4 rounded-xl text-xs font-display font-bold flex items-center justify-center gap-2 transition-colors ${
+                category === 'laps'
+                  ? 'bg-cyan-500 text-slate-950 shadow-lg shadow-cyan-500/20'
+                  : 'bg-slate-900 border border-white/8 text-slate-300 hover:text-white'
+              }`}
+            >
+              <span>Top 10 Lap Times</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setCategory('drifts')}
+              className={`min-h-[42px] px-4 rounded-xl text-xs font-display font-bold flex items-center justify-center gap-2 transition-colors ${
+                category === 'drifts'
+                  ? 'bg-amber-500 text-slate-950 shadow-lg shadow-amber-500/20'
+                  : 'bg-slate-900 border border-white/8 text-slate-300 hover:text-white'
+              }`}
+            >
+              <span>Top 10 Drift Scores</span>
+            </button>
+          </div>
 
+          <div className="flex items-center justify-end pt-1">
             <label className="flex items-center gap-2 text-xs text-slate-400">
               <span className="whitespace-nowrap">Driver</span>
               <input

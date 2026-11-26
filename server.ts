@@ -277,6 +277,8 @@ const globalLeaderboards: Record<TrackId, TrackLeaderboard> = {
   tokyo_neon: { topLaps: [], topDrifts: [] },
   miami_strip: { topLaps: [], topDrifts: [] },
   alpine_pass: { topLaps: [], topDrifts: [] },
+  london_underground: { topLaps: [], topDrifts: [] },
+  chicago_loop: { topLaps: [], topDrifts: [] },
 };
 
 function savePersistentStore(): void {
