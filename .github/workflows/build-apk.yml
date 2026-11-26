@@ -31,10 +31,8 @@ jobs:
           bun install --frozen-lockfile
           bun run build
 
-      - name: Initialize Capacitor Android
-        run: |
-          npx cap init "Apex Velocity" "com.apexvelocity.app" --web-dir dist --yes
-          npx cap add android
+      - name: Add Capacitor Android Platform
+        run: npx cap add android
 
       - name: Build Android APK with Gradle
         working-directory: android
