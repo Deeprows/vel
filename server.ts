@@ -35,7 +35,14 @@ const SESSION_SECRET =
     ? process.env.SESSION_SECRET
     : crypto.randomBytes(32).toString('hex');
 
-const VALID_TRACKS = new Set<TrackId>(['midnight_bay', 'redline_canyon', 'neon_docks']);
+const VALID_TRACKS = new Set<TrackId>([
+  'midnight_bay',
+  'redline_canyon',
+  'neon_docks',
+  'tokyo_neon',
+  'miami_strip',
+  'alpine_pass',
+]);
 const VALID_CARS = new Set<CarId>([
   'diablo_sv',
   'valkyrie',
@@ -267,6 +274,9 @@ const globalLeaderboards: Record<TrackId, TrackLeaderboard> = {
   midnight_bay: { topLaps: [], topDrifts: [] },
   redline_canyon: { topLaps: [], topDrifts: [] },
   neon_docks: { topLaps: [], topDrifts: [] },
+  tokyo_neon: { topLaps: [], topDrifts: [] },
+  miami_strip: { topLaps: [], topDrifts: [] },
+  alpine_pass: { topLaps: [], topDrifts: [] },
 };
 
 function savePersistentStore(): void {

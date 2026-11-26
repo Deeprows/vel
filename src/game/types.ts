@@ -8,7 +8,13 @@ export type CarId =
   | 'titan_gt'
   | 'stratos_lm';
 
-export type TrackId = 'midnight_bay' | 'redline_canyon' | 'neon_docks';
+export type TrackId =
+  | 'midnight_bay'
+  | 'redline_canyon'
+  | 'neon_docks'
+  | 'tokyo_neon'
+  | 'miami_strip'
+  | 'alpine_pass';
 
 export type RaceMode = 'circuit' | 'time_attack';
 

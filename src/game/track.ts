@@ -42,6 +42,45 @@ export const TRACKS: TrackDefinition[] = [
     groundHex: '#050C14',
     roadTintHex: '#E0F2FE',
   },
+  {
+    id: 'tokyo_neon',
+    name: 'Tokyo Cyber-District',
+    location: 'Shinjuku Loop',
+    lengthLabel: '2.40 km',
+    difficulty: 'High Speed',
+    skyHex: '#040812',
+    fogHex: '#040812',
+    fogDensity: 0.0020,
+    accentHex: '#EC4899',
+    groundHex: '#03060E',
+    roadTintHex: '#F43F5E',
+  },
+  {
+    id: 'miami_strip',
+    name: 'Miami Neon Strip',
+    location: 'South Beach',
+    lengthLabel: '1.95 km',
+    difficulty: 'Drift Heavy',
+    skyHex: '#110818',
+    fogHex: '#12091A',
+    fogDensity: 0.0022,
+    accentHex: '#06B6D4',
+    groundHex: '#0A0510',
+    roadTintHex: '#38BDF8',
+  },
+  {
+    id: 'alpine_pass',
+    name: 'Alpine Snow Pass',
+    location: 'Zurich Highlands',
+    lengthLabel: '2.50 km',
+    difficulty: 'Technical',
+    skyHex: '#0B132B',
+    fogHex: '#0B132B',
+    fogDensity: 0.0025,
+    accentHex: '#38BDF8',
+    groundHex: '#070A17',
+    roadTintHex: '#E2E8F0',
+  },
 ];
 
 export function getTrackDefinition(trackId: TrackId): TrackDefinition {
@@ -49,6 +88,53 @@ export function getTrackDefinition(trackId: TrackId): TrackDefinition {
 }
 
 function getControlPointsForTrack(trackId: TrackId): THREE.Vector3[] {
+  if (trackId === 'tokyo_neon') {
+    return [
+      new THREE.Vector3(0, 0, 0),
+      new THREE.Vector3(0, 1.2, -180),
+      new THREE.Vector3(120, 4.5, -280),
+      new THREE.Vector3(260, 8.0, -220),
+      new THREE.Vector3(310, 6.0, -100),
+      new THREE.Vector3(220, 3.5, 0),
+      new THREE.Vector3(340, 5.0, 110),
+      new THREE.Vector3(380, 8.5, 240),
+      new THREE.Vector3(230, 6.0, 310),
+      new THREE.Vector3(90, 2.0, 240),
+      new THREE.Vector3(-60, 0.5, 160),
+    ];
+  }
+
+  if (trackId === 'miami_strip') {
+    return [
+      new THREE.Vector3(0, 0, 0),
+      new THREE.Vector3(50, 0.5, -140),
+      new THREE.Vector3(180, 1.0, -210),
+      new THREE.Vector3(300, 0.5, -160),
+      new THREE.Vector3(340, 0, -40),
+      new THREE.Vector3(270, 0.5, 80),
+      new THREE.Vector3(150, 1.0, 190),
+      new THREE.Vector3(260, 0.5, 270),
+      new THREE.Vector3(100, 0, 240),
+      new THREE.Vector3(-40, 0, 120),
+    ];
+  }
+
+  if (trackId === 'alpine_pass') {
+    return [
+      new THREE.Vector3(0, 0, 0),
+      new THREE.Vector3(0, 2.5, -130),
+      new THREE.Vector3(110, 9.0, -220),
+      new THREE.Vector3(240, 16.0, -190),
+      new THREE.Vector3(310, 12.0, -70),
+      new THREE.Vector3(200, 6.0, 10),
+      new THREE.Vector3(330, 11.0, 120),
+      new THREE.Vector3(370, 18.0, 250),
+      new THREE.Vector3(220, 13.0, 310),
+      new THREE.Vector3(80, 6.0, 230),
+      new THREE.Vector3(-50, 2.0, 140),
+    ];
+  }
+
   if (trackId === 'redline_canyon') {
     // High-elevation switchback canyon circuit built for long drifts
     return [

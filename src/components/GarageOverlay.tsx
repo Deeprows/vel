@@ -398,7 +398,7 @@ export const GarageOverlay: React.FC<GarageOverlayProps> = ({
               )}
 
               {tab === 'track' && (
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-2.5">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 max-h-[250px] overflow-y-auto pr-1">
                   {TRACKS.map((trk) => {
                     const selected = trk.id === selectedTrackId;
                     const board = getTrackLeaderboard(trk.id);
