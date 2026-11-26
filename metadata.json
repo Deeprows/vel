@@ -2,5 +2,7 @@
   "name": "Apex Velocity",
   "description": "High-speed 3D street racing game for Android and desktop with realistic vehicle physics, drift dynamics, nitrous boost, and nocturnal city visuals.",
   "requestFramePermissions": [],
-  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
 }
