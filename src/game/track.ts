@@ -5,10 +5,10 @@ import { TrackDefinition, TrackId } from './types';
 export const TRACKS: TrackDefinition[] = [
   {
     id: 'midnight_bay',
-    name: 'Midnight Bay Circuit',
+    name: 'Midnight Bay Expressway',
     location: 'Coastal Highway',
-    lengthLabel: '1.85 km',
-    difficulty: 'High Speed',
+    lengthLabel: '2.2 km',
+    difficulty: 'Straight Highway',
     skyHex: '#080B12',
     fogHex: '#080B12',
     fogDensity: 0.0022,
@@ -18,10 +18,10 @@ export const TRACKS: TrackDefinition[] = [
   },
   {
     id: 'redline_canyon',
-    name: 'Redline Canyon Pass',
-    location: 'Dusk Ridge',
-    lengthLabel: '2.15 km',
-    difficulty: 'Drift Heavy',
+    name: 'Redline Canyon Freeway',
+    location: 'Dusk Ridge Interstate',
+    lengthLabel: '2.5 km',
+    difficulty: 'Straight Highway',
     skyHex: '#160D16',
     fogHex: '#180E16',
     fogDensity: 0.0024,
@@ -31,10 +31,10 @@ export const TRACKS: TrackDefinition[] = [
   },
   {
     id: 'neon_docks',
-    name: 'Neon Docks Expressway',
-    location: 'Industrial Port',
-    lengthLabel: '1.68 km',
-    difficulty: 'Technical',
+    name: 'Neon Docks Highway',
+    location: 'Industrial Port Causeway',
+    lengthLabel: '2.0 km',
+    difficulty: 'Straight Highway',
     skyHex: '#061019',
     fogHex: '#061019',
     fogDensity: 0.0023,
@@ -44,10 +44,10 @@ export const TRACKS: TrackDefinition[] = [
   },
   {
     id: 'tokyo_neon',
-    name: 'Tokyo Cyber-District',
-    location: 'Shinjuku Loop',
-    lengthLabel: '2.40 km',
-    difficulty: 'High Speed',
+    name: 'Tokyo Shuto Expressway',
+    location: 'Shinjuku Straight',
+    lengthLabel: '2.5 km',
+    difficulty: 'Straight Highway',
     skyHex: '#040812',
     fogHex: '#040812',
     fogDensity: 0.0020,
@@ -57,10 +57,10 @@ export const TRACKS: TrackDefinition[] = [
   },
   {
     id: 'miami_strip',
-    name: 'Miami Sunshine Strip',
-    location: 'South Beach Daylight',
-    lengthLabel: '1.95 km',
-    difficulty: 'Drift Heavy',
+    name: 'Miami Sunshine Interstate',
+    location: 'South Beach Ocean Way',
+    lengthLabel: '2.2 km',
+    difficulty: 'Straight Highway',
     skyHex: '#38BDF8',
     fogHex: '#BAE6FD',
     fogDensity: 0.0018,
@@ -70,10 +70,10 @@ export const TRACKS: TrackDefinition[] = [
   },
   {
     id: 'alpine_pass',
-    name: 'Alpine Morning Pass',
-    location: 'Zurich Highlands Sun',
-    lengthLabel: '2.50 km',
-    difficulty: 'Technical',
+    name: 'Alpine Sun Highway',
+    location: 'Zurich Highland Autobahn',
+    lengthLabel: '2.5 km',
+    difficulty: 'Straight Highway',
     skyHex: '#0EA5E9',
     fogHex: '#E0F2FE',
     fogDensity: 0.0020,
@@ -83,10 +83,10 @@ export const TRACKS: TrackDefinition[] = [
   },
   {
     id: 'london_underground',
-    name: 'London Metropolis',
-    location: 'Thames & City Loop',
-    lengthLabel: '2.35 km',
-    difficulty: 'Technical',
+    name: 'London City Expressway',
+    location: 'Thames Corridor',
+    lengthLabel: '2.4 km',
+    difficulty: 'Straight Highway',
     skyHex: '#0B101D',
     fogHex: '#0B101D',
     fogDensity: 0.0022,
@@ -96,10 +96,10 @@ export const TRACKS: TrackDefinition[] = [
   },
   {
     id: 'chicago_loop',
-    name: 'Chicago Daylight Loop',
-    location: 'Windy City Morning',
-    lengthLabel: '2.10 km',
-    difficulty: 'High Speed',
+    name: 'Chicago Skyway Daylight',
+    location: 'Lake Shore Straight',
+    lengthLabel: '2.2 km',
+    difficulty: 'Straight Highway',
     skyHex: '#2563EB',
     fogHex: '#BFDBFE',
     fogDensity: 0.0019,
@@ -113,136 +113,22 @@ export function getTrackDefinition(trackId: TrackId): TrackDefinition {
   return TRACKS.find((t) => t.id === trackId) ?? TRACKS[0];
 }
 
-function getControlPointsForTrack(trackId: TrackId): THREE.Vector3[] {
-  if (trackId === 'london_underground') {
-    return [
-      new THREE.Vector3(0, 0, 0),
-      new THREE.Vector3(50, 1.0, -160),
-      new THREE.Vector3(170, 4.0, -260),
-      new THREE.Vector3(290, 2.5, -190),
-      new THREE.Vector3(340, 1.0, -80),
-      new THREE.Vector3(260, 3.5, 20),
-      new THREE.Vector3(330, 6.0, 130),
-      new THREE.Vector3(280, 4.0, 250),
-      new THREE.Vector3(140, 2.0, 220),
-      new THREE.Vector3(-30, 0.5, 140),
-    ];
+export function getTrackLength(trackId: TrackId): number {
+  switch (trackId) {
+    case 'neon_docks':
+      return 2048;
+    case 'chicago_loop':
+    case 'miami_strip':
+    case 'midnight_bay':
+      return 2240;
+    case 'london_underground':
+      return 2400;
+    case 'redline_canyon':
+    case 'tokyo_neon':
+    case 'alpine_pass':
+    default:
+      return 2560;
   }
-
-  if (trackId === 'chicago_loop') {
-    return [
-      new THREE.Vector3(0, 0, 0),
-      new THREE.Vector3(0, 0.5, -180),
-      new THREE.Vector3(130, 3.0, -270),
-      new THREE.Vector3(270, 5.5, -210),
-      new THREE.Vector3(320, 3.5, -90),
-      new THREE.Vector3(210, 1.5, -10),
-      new THREE.Vector3(290, 4.0, 100),
-      new THREE.Vector3(350, 7.0, 220),
-      new THREE.Vector3(200, 4.5, 300),
-      new THREE.Vector3(80, 2.0, 220),
-      new THREE.Vector3(-50, 0.5, 130),
-    ];
-  }
-
-  if (trackId === 'tokyo_neon') {
-    return [
-      new THREE.Vector3(0, 0, 0),
-      new THREE.Vector3(0, 1.2, -180),
-      new THREE.Vector3(120, 4.5, -280),
-      new THREE.Vector3(260, 8.0, -220),
-      new THREE.Vector3(310, 6.0, -100),
-      new THREE.Vector3(220, 3.5, 0),
-      new THREE.Vector3(340, 5.0, 110),
-      new THREE.Vector3(380, 8.5, 240),
-      new THREE.Vector3(230, 6.0, 310),
-      new THREE.Vector3(90, 2.0, 240),
-      new THREE.Vector3(-60, 0.5, 160),
-    ];
-  }
-
-  if (trackId === 'miami_strip') {
-    return [
-      new THREE.Vector3(0, 0, 0),
-      new THREE.Vector3(50, 0.5, -140),
-      new THREE.Vector3(180, 1.0, -210),
-      new THREE.Vector3(300, 0.5, -160),
-      new THREE.Vector3(340, 0, -40),
-      new THREE.Vector3(270, 0.5, 80),
-      new THREE.Vector3(150, 1.0, 190),
-      new THREE.Vector3(260, 0.5, 270),
-      new THREE.Vector3(100, 0, 240),
-      new THREE.Vector3(-40, 0, 120),
-    ];
-  }
-
-  if (trackId === 'alpine_pass') {
-    return [
-      new THREE.Vector3(0, 0, 0),
-      new THREE.Vector3(0, 2.5, -130),
-      new THREE.Vector3(110, 9.0, -220),
-      new THREE.Vector3(240, 16.0, -190),
-      new THREE.Vector3(310, 12.0, -70),
-      new THREE.Vector3(200, 6.0, 10),
-      new THREE.Vector3(330, 11.0, 120),
-      new THREE.Vector3(370, 18.0, 250),
-      new THREE.Vector3(220, 13.0, 310),
-      new THREE.Vector3(80, 6.0, 230),
-      new THREE.Vector3(-50, 2.0, 140),
-    ];
-  }
-
-  if (trackId === 'redline_canyon') {
-    // High-elevation switchback canyon circuit built for long drifts
-    return [
-      new THREE.Vector3(0, 0, 0),
-      new THREE.Vector3(0, 1.0, -150),
-      new THREE.Vector3(90, 6.5, -245),
-      new THREE.Vector3(210, 12.0, -205),
-      new THREE.Vector3(270, 9.0, -90),
-      new THREE.Vector3(190, 4.5, -20),
-      new THREE.Vector3(310, 6.0, 85),
-      new THREE.Vector3(365, 10.5, 200),
-      new THREE.Vector3(245, 8.0, 290),
-      new THREE.Vector3(120, 3.0, 210),
-      new THREE.Vector3(45, 0.5, 275),
-      new THREE.Vector3(-45, 0, 155),
-    ];
-  }
-
-  if (trackId === 'neon_docks') {
-    // Technical industrial harbor circuit with fast 90-degree bends and chicanes
-    return [
-      new THREE.Vector3(0, 0, 0),
-      new THREE.Vector3(0, 0, -195),
-      new THREE.Vector3(75, 0.5, -255),
-      new THREE.Vector3(215, 0.5, -255),
-      new THREE.Vector3(275, 0, -180),
-      new THREE.Vector3(275, 0, -55),
-      new THREE.Vector3(175, 0, -10),
-      new THREE.Vector3(175, 0, 95),
-      new THREE.Vector3(270, 0.5, 165),
-      new THREE.Vector3(220, 0.5, 250),
-      new THREE.Vector3(65, 0, 235),
-      new THREE.Vector3(0, 0, 150),
-    ];
-  }
-
-  // Default: Midnight Bay Circuit
-  return [
-    new THREE.Vector3(0, 0, 0),
-    new THREE.Vector3(0, 0, -170),
-    new THREE.Vector3(45, 2.5, -290),
-    new THREE.Vector3(165, 5.0, -340),
-    new THREE.Vector3(285, 3.0, -295),
-    new THREE.Vector3(320, 0.5, -175),
-    new THREE.Vector3(245, 0, -85),
-    new THREE.Vector3(315, 0, 40),
-    new THREE.Vector3(370, 1.5, 165),
-    new THREE.Vector3(260, 2.0, 260),
-    new THREE.Vector3(110, 0.5, 235),
-    new THREE.Vector3(20, 0, 160),
-  ];
 }
 
 export interface TrackSample {
@@ -283,32 +169,38 @@ export function createStreetTrack(
   isSoftwareGl: boolean
 ): TrackData {
   const definition = getTrackDefinition(trackId);
+  const totalLength = getTrackLength(trackId);
   const group = new THREE.Group();
 
-  const controlPoints = getControlPointsForTrack(trackId);
-  const curve = new THREE.CatmullRomCurve3(controlPoints, true, 'catmullrom', 0.45);
-  const totalLength = curve.getLength();
+  // Straight CatmullRomCurve3 along negative Z
+  const curvePoints = [
+    new THREE.Vector3(0, 0, 0),
+    new THREE.Vector3(0, 0, -totalLength * 0.5),
+    new THREE.Vector3(0, 0, -totalLength),
+  ];
+  const curve = new THREE.CatmullRomCurve3(curvePoints, false);
 
+  // Generate 600 equidistant straight samples along negative Z
   const samples: TrackSample[] = [];
-  const up = new THREE.Vector3(0, 1, 0);
-
   for (let i = 0; i < SAMPLE_COUNT; i++) {
     const t = i / SAMPLE_COUNT;
-    const point = curve.getPointAt(t);
-    const tangent = curve.getTangentAt(t).normalize();
-    const right = new THREE.Vector3().crossVectors(tangent, up).normalize();
-
-    const tNext = ((i + 3) / SAMPLE_COUNT) % 1;
-    const nextTan = curve.getTangentAt(tNext).normalize();
-    const turnCrossY = tangent.x * nextTan.z - tangent.z * nextTan.x;
-    const bankAngle = THREE.MathUtils.clamp(turnCrossY * 1.4, -0.09, 0.09);
-
-    const bankQuat = new THREE.Quaternion().setFromAxisAngle(tangent, bankAngle);
-    right.applyQuaternion(bankQuat).normalize();
-    const normal = new THREE.Vector3().crossVectors(right, tangent).normalize();
-
-    samples.push({ point, tangent, right, normal, t, bankAngle });
+    samples.push({
+      point: new THREE.Vector3(0, 0, -t * totalLength),
+      tangent: new THREE.Vector3(0, 0, -1),
+      right: new THREE.Vector3(1, 0, 0),
+      normal: new THREE.Vector3(0, 1, 0),
+      t,
+      bankAngle: 0,
+    });
   }
+
+  // Build straight highway road surface, kerbs, and guardrails
+  // The highway geometry extends from z = 160 (behind start line) to z = -totalLength - 480 (far ahead)
+  // so the straight road horizon is fully continuous and seamless!
+  const startZ = 160;
+  const endZ = -totalLength - 480;
+  const segStep = 4.0;
+  const numSteps = Math.ceil((startZ - endZ) / segStep);
 
   const roadPositions: number[] = [];
   const roadNormals: number[] = [];
@@ -325,50 +217,42 @@ export function createStreetTrack(
   const wallUvs: number[] = [];
   const wallIndices: number[] = [];
 
-  const uvRepeatLength = 34;
+  const uvRepeatLength = 32.0;
 
-  for (let i = 0; i <= SAMPLE_COUNT; i++) {
-    const s = samples[i % SAMPLE_COUNT];
-    const distAlong = (i / SAMPLE_COUNT) * totalLength;
+  for (let step = 0; step <= numSteps; step++) {
+    const z = Math.max(endZ, startZ - step * segStep);
+    const distAlong = -z;
     const vCoord = distAlong / uvRepeatLength;
 
-    const leftEdge = s.point.clone().addScaledVector(s.right, -ROAD_HALF_WIDTH);
-    const rightEdge = s.point.clone().addScaledVector(s.right, ROAD_HALF_WIDTH);
-
-    roadPositions.push(leftEdge.x, leftEdge.y, leftEdge.z);
-    roadPositions.push(rightEdge.x, rightEdge.y, rightEdge.z);
-    roadNormals.push(s.normal.x, s.normal.y, s.normal.z);
-    roadNormals.push(s.normal.x, s.normal.y, s.normal.z);
+    // Road Quad (4 lanes)
+    roadPositions.push(-ROAD_HALF_WIDTH, 0, z);
+    roadPositions.push(ROAD_HALF_WIDTH, 0, z);
+    roadNormals.push(0, 1, 0, 0, 1, 0);
     roadUvs.push(0, vCoord, 1, vCoord);
 
-    const kl0 = s.point.clone().addScaledVector(s.right, -ROAD_HALF_WIDTH - 1.25).addScaledVector(s.normal, 0.04);
-    const kl1 = s.point.clone().addScaledVector(s.right, -ROAD_HALF_WIDTH + 0.1).addScaledVector(s.normal, 0.02);
-    const kr0 = s.point.clone().addScaledVector(s.right, ROAD_HALF_WIDTH - 0.1).addScaledVector(s.normal, 0.02);
-    const kr1 = s.point.clone().addScaledVector(s.right, ROAD_HALF_WIDTH + 1.25).addScaledVector(s.normal, 0.04);
-
-    kerbPositions.push(kl0.x, kl0.y, kl0.z, kl1.x, kl1.y, kl1.z, kr0.x, kr0.y, kr0.z, kr1.x, kr1.y, kr1.z);
-    for (let k = 0; k < 4; k++) {
-      kerbNormals.push(s.normal.x, s.normal.y, s.normal.z);
-    }
-    const kv = distAlong / 6;
+    // Kerbs
+    kerbPositions.push(-ROAD_HALF_WIDTH - 1.25, 0.04, z);
+    kerbPositions.push(-ROAD_HALF_WIDTH + 0.1, 0.02, z);
+    kerbPositions.push(ROAD_HALF_WIDTH - 0.1, 0.02, z);
+    kerbPositions.push(ROAD_HALF_WIDTH + 1.25, 0.04, z);
+    for (let k = 0; k < 4; k++) kerbNormals.push(0, 1, 0);
+    const kv = distAlong / 6.0;
     kerbUvs.push(0, kv, 1, kv, 0, kv, 1, kv);
 
-    const wlBot = s.point.clone().addScaledVector(s.right, -WALL_HALF_WIDTH);
-    const wlTop = wlBot.clone().addScaledVector(s.normal, 1.05);
-    const wrBot = s.point.clone().addScaledVector(s.right, WALL_HALF_WIDTH);
-    const wrTop = wrBot.clone().addScaledVector(s.normal, 1.05);
-
-    wallPositions.push(wlBot.x, wlBot.y, wlBot.z, wlTop.x, wlTop.y, wlTop.z, wrBot.x, wrBot.y, wrBot.z, wrTop.x, wrTop.y, wrTop.z);
-    wallNormals.push(s.right.x, s.right.y, s.right.z, s.right.x, s.right.y, s.right.z);
-    wallNormals.push(-s.right.x, -s.right.y, -s.right.z, -s.right.x, -s.right.y, -s.right.z);
-    const wv = distAlong / 10;
+    // Guardrail Walls (Double Beam Highway Silver Guardrail)
+    wallPositions.push(-WALL_HALF_WIDTH, 0, z);
+    wallPositions.push(-WALL_HALF_WIDTH, 1.15, z);
+    wallPositions.push(WALL_HALF_WIDTH, 0, z);
+    wallPositions.push(WALL_HALF_WIDTH, 1.15, z);
+    wallNormals.push(1, 0, 0, 1, 0, 0, -1, 0, 0, -1, 0, 0);
+    const wv = distAlong / 8.0;
     wallUvs.push(0, wv, 1, wv, 0, wv, 1, wv);
 
-    if (i < SAMPLE_COUNT) {
-      const rIdx = i * 2;
+    if (step < numSteps) {
+      const rIdx = step * 2;
       roadIndices.push(rIdx, rIdx + 1, rIdx + 2, rIdx + 1, rIdx + 3, rIdx + 2);
 
-      const kIdx = i * 4;
+      const kIdx = step * 4;
       kerbIndices.push(kIdx, kIdx + 1, kIdx + 4, kIdx + 1, kIdx + 5, kIdx + 4);
       kerbIndices.push(kIdx + 2, kIdx + 3, kIdx + 6, kIdx + 3, kIdx + 7, kIdx + 6);
 
@@ -436,57 +320,59 @@ export function createStreetTrack(
   wallGeo.setIndex(wallIndices);
 
   const wallMat = new THREE.MeshStandardMaterial({
-    color: 0x334155,
-    metalness: 0.72,
-    roughness: 0.35,
+    color: 0x94a3b8, // silver galvanized steel highway guardrail
+    metalness: 0.85,
+    roughness: 0.28,
     side: THREE.DoubleSide,
   });
   const wallMesh = new THREE.Mesh(wallGeo, wallMat);
   wallMesh.receiveShadow = true;
   group.add(wallMesh);
 
-  // Guardrail Top Accent Strip (themed per track)
+  // Guardrail Top Accent Strip & Reflectors
   const railStripMat = new THREE.MeshBasicMaterial({ color: new THREE.Color(definition.accentHex) });
-  const railPostGeo = new THREE.BoxGeometry(0.18, 0.08, 2.2);
-  const railCount = 150;
+  const railPostGeo = new THREE.BoxGeometry(0.18, 0.08, 3.8);
+  const railStep = 16.0;
+  const railCount = Math.floor((startZ - endZ) / railStep);
   const railInst = new THREE.InstancedMesh(railPostGeo, railStripMat, railCount * 2);
   const dummy = new THREE.Object3D();
+
   for (let i = 0; i < railCount; i++) {
-    const s = samples[Math.floor((i / railCount) * SAMPLE_COUNT)];
-    for (let side = 0; side < 2; side++) {
-      const sign = side === 0 ? -1 : 1;
-      const pos = s.point.clone().addScaledVector(s.right, sign * WALL_HALF_WIDTH).addScaledVector(s.normal, 1.07);
-      dummy.position.copy(pos);
-      dummy.lookAt(pos.clone().add(s.tangent));
-      dummy.updateMatrix();
-      railInst.setMatrixAt(i * 2 + side, dummy.matrix);
-    }
+    const z = startZ - i * railStep;
+    // Left side rail
+    dummy.position.set(-WALL_HALF_WIDTH, 1.18, z);
+    dummy.rotation.set(0, 0, 0);
+    dummy.updateMatrix();
+    railInst.setMatrixAt(i * 2, dummy.matrix);
+
+    // Right side rail
+    dummy.position.set(WALL_HALF_WIDTH, 1.18, z);
+    dummy.rotation.set(0, 0, 0);
+    dummy.updateMatrix();
+    railInst.setMatrixAt(i * 2 + 1, dummy.matrix);
   }
   railInst.instanceMatrix.needsUpdate = true;
   railInst.computeBoundingSphere();
   group.add(railInst);
 
-  // Start / Finish Overhead Gantry
-  const startSample = samples[0];
+  // Start / Finish Overhead Gantry at z = 0
   const gantryGroup = new THREE.Group();
-  gantryGroup.position.copy(startSample.point);
-  const gantryTarget = startSample.point.clone().add(startSample.tangent);
-  gantryGroup.lookAt(gantryTarget);
+  gantryGroup.position.set(0, 0, 0);
 
-  const pillarGeo = new THREE.BoxGeometry(0.9, 8.2, 0.9);
-  const pillarMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, metalness: 0.8, roughness: 0.3 });
+  const pillarGeo = new THREE.BoxGeometry(1.0, 8.4, 1.0);
+  const pillarMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, metalness: 0.85, roughness: 0.25 });
   const leftPillar = new THREE.Mesh(pillarGeo, pillarMat);
-  leftPillar.position.set(-WALL_HALF_WIDTH - 0.5, 4.1, 0);
+  leftPillar.position.set(-WALL_HALF_WIDTH - 0.7, 4.2, 0);
   const rightPillar = new THREE.Mesh(pillarGeo, pillarMat);
-  rightPillar.position.set(WALL_HALF_WIDTH + 0.5, 4.1, 0);
+  rightPillar.position.set(WALL_HALF_WIDTH + 0.7, 4.2, 0);
   gantryGroup.add(leftPillar, rightPillar);
 
-  const bannerGeo = new THREE.BoxGeometry(WALL_HALF_WIDTH * 2 + 1.8, 2.4, 0.7);
+  const bannerGeo = new THREE.BoxGeometry(WALL_HALF_WIDTH * 2 + 2.4, 2.5, 0.8);
   const bannerMat = new THREE.MeshStandardMaterial({
     map: textures.gantryBannerMap,
     emissiveMap: textures.gantryBannerMap,
     emissive: new THREE.Color(0xffffff),
-    emissiveIntensity: 0.75,
+    emissiveIntensity: 0.8,
     roughness: 0.4,
   });
   const banner = new THREE.Mesh(bannerGeo, bannerMat);
@@ -494,46 +380,91 @@ export function createStreetTrack(
   gantryGroup.add(banner);
   group.add(gantryGroup);
 
-  // Ground Plane
-  const groundGeo = new THREE.PlaneGeometry(3400, 3400);
+  // Highway Directional Sign Gantries along the straight corridor (matching reference image)
+  const signPositions = [-totalLength * 0.33, -totalLength * 0.67];
+  const signMat = new THREE.MeshStandardMaterial({ color: 0x15803d, roughness: 0.4, metalness: 0.2 }); // highway green
+  const signTextMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+  for (const sz of signPositions) {
+    const sGroup = new THREE.Group();
+    sGroup.position.set(0, 0, sz);
+
+    const sLeftPillar = new THREE.Mesh(pillarGeo, pillarMat);
+    sLeftPillar.position.set(-WALL_HALF_WIDTH - 0.7, 4.2, 0);
+    const sRightPillar = new THREE.Mesh(pillarGeo, pillarMat);
+    sRightPillar.position.set(WALL_HALF_WIDTH + 0.7, 4.2, 0);
+    sGroup.add(sLeftPillar, sRightPillar);
+
+    const signBoard = new THREE.Mesh(new THREE.BoxGeometry(WALL_HALF_WIDTH * 1.8, 2.2, 0.4), signMat);
+    signBoard.position.set(0, 7.5, 0);
+    sGroup.add(signBoard);
+
+    // White border strip on sign
+    const signBorder = new THREE.Mesh(new THREE.BoxGeometry(WALL_HALF_WIDTH * 1.76, 0.08, 0.42), signTextMat);
+    signBorder.position.set(0, 6.55, 0);
+    sGroup.add(signBorder);
+
+    group.add(sGroup);
+  }
+
+  // Ground Plane (Lush grass/terrain outside highway)
+  const groundGeo = new THREE.PlaneGeometry(3600, 3600);
   groundGeo.rotateX(-Math.PI / 2);
+  const isDaylight = trackId === 'miami_strip' || trackId === 'alpine_pass' || trackId === 'chicago_loop';
   const groundMat = new THREE.MeshStandardMaterial({
-    color: new THREE.Color(definition.groundHex),
-    roughness: 0.48,
-    metalness: 0.5,
+    color: isDaylight ? 0x2e6f40 : new THREE.Color(definition.groundHex),
+    roughness: 0.75,
+    metalness: 0.15,
   });
   const groundMesh = new THREE.Mesh(groundGeo, groundMat);
-  groundMesh.position.set(160, -1.6, -40);
+  groundMesh.position.set(0, -0.05, -totalLength * 0.5);
   groundMesh.receiveShadow = true;
   group.add(groundMesh);
 
-  // Instanced Highway Streetlights
-  const lampCount = 72;
-  const poleGeo = new THREE.CylinderGeometry(0.11, 0.16, 7.8, 8);
-  const poleMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, metalness: 0.85, roughness: 0.3 });
-  const poleInst = new THREE.InstancedMesh(poleGeo, poleMat, lampCount);
+  // Instanced Highway Streetlights (matching reference screenshot with curved heads)
+  const lampStep = 32.0;
+  const lampZCount = Math.floor((startZ - endZ) / lampStep);
+  const totalLamps = lampZCount * 2;
 
-  const bulbGeo = new THREE.BoxGeometry(1.5, 0.18, 0.45);
-  const bulbColor = trackId === 'neon_docks' ? 0x67e8f9 : trackId === 'redline_canyon' ? 0xfca5a5 : 0xfef08a;
+  const poleGeo = new THREE.CylinderGeometry(0.12, 0.18, 7.8, 8);
+  const poleMat = new THREE.MeshStandardMaterial({ color: 0x334155, metalness: 0.85, roughness: 0.3 });
+  const poleInst = new THREE.InstancedMesh(poleGeo, poleMat, totalLamps);
+
+  const bulbGeo = new THREE.BoxGeometry(1.6, 0.2, 0.5);
+  const bulbColor = isDaylight
+    ? 0xfffbeb
+    : trackId === 'neon_docks'
+      ? 0x67e8f9
+      : trackId === 'redline_canyon'
+        ? 0xfca5a5
+        : 0xfef08a;
   const bulbMat = new THREE.MeshBasicMaterial({ color: bulbColor });
-  const bulbInst = new THREE.InstancedMesh(bulbGeo, bulbMat, lampCount);
+  const bulbInst = new THREE.InstancedMesh(bulbGeo, bulbMat, totalLamps);
 
-  for (let i = 0; i < lampCount; i++) {
-    const s = samples[Math.floor((i / lampCount) * SAMPLE_COUNT)];
-    const side = i % 2 === 0 ? -1 : 1;
-    const basePos = s.point.clone().addScaledVector(s.right, side * (WALL_HALF_WIDTH + 0.9));
-
-    dummy.position.set(basePos.x, basePos.y + 3.9, basePos.z);
+  for (let i = 0; i < lampZCount; i++) {
+    const z = startZ - i * lampStep;
+    // Left lamp
+    const lIdx = i * 2;
+    dummy.position.set(-WALL_HALF_WIDTH - 0.9, 3.9, z);
     dummy.rotation.set(0, 0, 0);
-    dummy.lookAt(basePos.x + s.tangent.x, basePos.y + 3.9, basePos.z + s.tangent.z);
     dummy.updateMatrix();
-    poleInst.setMatrixAt(i, dummy.matrix);
+    poleInst.setMatrixAt(lIdx, dummy.matrix);
 
-    const headPos = s.point.clone().addScaledVector(s.right, side * (WALL_HALF_WIDTH - 0.3));
-    dummy.position.set(headPos.x, headPos.y + 7.75, headPos.z);
-    dummy.lookAt(headPos.x - s.right.x * side, headPos.y + 7.75, headPos.z - s.right.z * side);
+    dummy.position.set(-WALL_HALF_WIDTH + 0.4, 7.75, z);
+    dummy.rotation.set(0, 0, 0);
     dummy.updateMatrix();
-    bulbInst.setMatrixAt(i, dummy.matrix);
+    bulbInst.setMatrixAt(lIdx, dummy.matrix);
+
+    // Right lamp
+    const rIdx = i * 2 + 1;
+    dummy.position.set(WALL_HALF_WIDTH + 0.9, 3.9, z);
+    dummy.rotation.set(0, 0, 0);
+    dummy.updateMatrix();
+    poleInst.setMatrixAt(rIdx, dummy.matrix);
+
+    dummy.position.set(WALL_HALF_WIDTH - 0.4, 7.75, z);
+    dummy.rotation.set(0, 0, 0);
+    dummy.updateMatrix();
+    bulbInst.setMatrixAt(rIdx, dummy.matrix);
   }
   poleInst.instanceMatrix.needsUpdate = true;
   poleInst.computeBoundingSphere();
@@ -541,8 +472,53 @@ export function createStreetTrack(
   bulbInst.computeBoundingSphere();
   group.add(poleInst, bulbInst);
 
-  // Scenery Props: City Towers (Midnight/Neon Docks) or Canyon Monoliths (Redline Canyon)
-  const propCount = isSoftwareGl ? 90 : 140;
+  // Highway Flank Scenery:
+  // 1. Trees lining the highway (matching reference image)
+  const treeCount = isSoftwareGl ? 80 : 160;
+  const trunkGeo = new THREE.CylinderGeometry(0.25, 0.38, 3.6, 6);
+  const trunkMat = new THREE.MeshStandardMaterial({ color: 0x3d271d, roughness: 0.9 });
+  const trunkInst = new THREE.InstancedMesh(trunkGeo, trunkMat, treeCount);
+
+  const foliageGeo = new THREE.ConeGeometry(2.4, 6.2, 7);
+  const foliageMat = new THREE.MeshStandardMaterial({
+    color: isDaylight ? 0x2d6a4f : 0x1b4332,
+    roughness: 0.72,
+    metalness: 0.05,
+  });
+  const foliageInst = new THREE.InstancedMesh(foliageGeo, foliageMat, treeCount);
+
+  let seed = trackId === 'redline_canyon' ? 109 : trackId === 'neon_docks' ? 277 : 42;
+  const rand = () => {
+    seed = (seed * 16807) % 2147483647;
+    return (seed - 1) / 2147483646;
+  };
+
+  for (let i = 0; i < treeCount; i++) {
+    const side = i % 2 === 0 ? -1 : 1;
+    const treeX = side * (WALL_HALF_WIDTH + 3.5 + rand() * 16.0);
+    const treeZ = startZ - rand() * (startZ - endZ);
+    const scale = 0.85 + rand() * 0.45;
+
+    dummy.position.set(treeX, 1.8 * scale, treeZ);
+    dummy.scale.set(scale, scale, scale);
+    dummy.rotation.set(0, rand() * Math.PI * 2, 0);
+    dummy.updateMatrix();
+    trunkInst.setMatrixAt(i, dummy.matrix);
+
+    dummy.position.set(treeX, (3.6 + 2.8) * scale, treeZ);
+    dummy.scale.set(scale, scale, scale);
+    dummy.rotation.set(0, rand() * Math.PI * 2, 0);
+    dummy.updateMatrix();
+    foliageInst.setMatrixAt(i, dummy.matrix);
+  }
+  trunkInst.instanceMatrix.needsUpdate = true;
+  trunkInst.computeBoundingSphere();
+  foliageInst.instanceMatrix.needsUpdate = true;
+  foliageInst.computeBoundingSphere();
+  group.add(trunkInst, foliageInst);
+
+  // 2. City Skylines / Canyon Monoliths further back along highway flanks
+  const propCount = isSoftwareGl ? 70 : 120;
   const bGeo = new THREE.BoxGeometry(1, 1, 1);
   const isCanyon = trackId === 'redline_canyon';
   const bMat = isCanyon
@@ -554,156 +530,73 @@ export function createStreetTrack(
     : new THREE.MeshStandardMaterial({
         map: textures.buildingFacadeMap,
         emissiveMap: textures.buildingFacadeMap,
-        emissive: new THREE.Color(0xffffff),
-        emissiveIntensity: 0.85,
+        emissive: new THREE.Color(isDaylight ? 0x222222 : 0xffffff),
+        emissiveIntensity: isDaylight ? 0.2 : 0.85,
         roughness: 0.5,
         metalness: 0.4,
       });
   const propInst = new THREE.InstancedMesh(bGeo, bMat, propCount);
 
-  let seed = trackId === 'redline_canyon' ? 109 : trackId === 'neon_docks' ? 277 : 42;
-  const rand = () => {
-    seed = (seed * 16807) % 2147483647;
-    return (seed - 1) / 2147483646;
-  };
+  for (let i = 0; i < propCount; i++) {
+    const side = i % 2 === 0 ? -1 : 1;
+    const bx = side * (WALL_HALF_WIDTH + 38 + rand() * 140);
+    const bz = startZ - rand() * (startZ - endZ);
+    const bw = isCanyon ? 32 + rand() * 45 : 24 + rand() * 34;
+    const bd = isCanyon ? 32 + rand() * 45 : 24 + rand() * 34;
+    const bh = isCanyon ? 35 + rand() * 110 : 45 + rand() * 160;
 
-  let placed = 0;
-  let attempts = 0;
-  while (placed < propCount && attempts < 1400) {
-    attempts++;
-    const bx = -220 + rand() * 820;
-    const bz = -540 + rand() * 980;
+    dummy.position.set(bx, bh * 0.5 - 0.5, bz);
+    dummy.rotation.set(0, rand() * Math.PI * 0.5, 0);
+    dummy.scale.set(bw, bh, bd);
+    dummy.updateMatrix();
+    propInst.setMatrixAt(i, dummy.matrix);
 
-    let minDistSq = Infinity;
-    for (let k = 0; k < SAMPLE_COUNT; k += 5) {
-      const sp = samples[k].point;
-      const dx = bx - sp.x;
-      const dz = bz - sp.z;
-      const dSq = dx * dx + dz * dz;
-      if (dSq < minDistSq) minDistSq = dSq;
-    }
-
-    if (minDistSq > 34 * 34) {
-      const bw = isCanyon ? 24 + rand() * 36 : 18 + rand() * 28;
-      const bd = isCanyon ? 24 + rand() * 36 : 18 + rand() * 28;
-      const bh = isCanyon ? 28 + rand() * 95 : 38 + rand() * 145;
-      dummy.position.set(bx, bh * 0.5 - 1.6, bz);
-      dummy.rotation.set(0, rand() * Math.PI * 0.5, 0);
-      dummy.scale.set(bw, bh, bd);
-      dummy.updateMatrix();
-      propInst.setMatrixAt(placed, dummy.matrix);
-
-      const tint = isCanyon
-        ? new THREE.Color().setHSL(0.95 + (rand() - 0.5) * 0.08, 0.32, 0.48 + rand() * 0.25)
-        : new THREE.Color().setHSL(0.58 + (rand() - 0.5) * 0.12, 0.22, 0.72 + rand() * 0.28);
-      propInst.setColorAt(placed, tint);
-      placed++;
-    }
+    const tint = isCanyon
+      ? new THREE.Color().setHSL(0.95 + (rand() - 0.5) * 0.08, 0.32, 0.48 + rand() * 0.25)
+      : new THREE.Color().setHSL(0.58 + (rand() - 0.5) * 0.12, 0.22, 0.72 + rand() * 0.28);
+    propInst.setColorAt(i, tint);
   }
-  propInst.count = placed;
   propInst.instanceMatrix.needsUpdate = true;
   if (propInst.instanceColor) propInst.instanceColor.needsUpdate = true;
   propInst.computeBoundingSphere();
   group.add(propInst);
 
-  // Normalized 2D minimap points (0..100 SVG space)
-  let minX = Infinity, maxX = -Infinity, minZ = Infinity, maxZ = -Infinity;
-  for (let i = 0; i < SAMPLE_COUNT; i += 4) {
-    const p = samples[i].point;
-    if (p.x < minX) minX = p.x;
-    if (p.x > maxX) maxX = p.x;
-    if (p.z < minZ) minZ = p.z;
-    if (p.z > maxZ) maxZ = p.z;
-  }
-  const span = Math.max(maxX - minX, maxZ - minZ) || 1;
-  const padX = (span - (maxX - minX)) * 0.5;
-  const padZ = (span - (maxZ - minZ)) * 0.5;
+  // Normalized 2D minimap points (Straight highway progress bar from bottom to top)
   const minimapPoints: { x: number; y: number }[] = [];
   for (let i = 0; i < SAMPLE_COUNT; i += 4) {
-    const p = samples[i].point;
     minimapPoints.push({
-      x: 10 + ((p.x - minX + padX) / span) * 80,
-      y: 10 + ((p.z - minZ + padZ) / span) * 80,
+      x: 50,
+      y: 90 - (i / SAMPLE_COUNT) * 80,
     });
   }
 
   function sampleAtProgress(t: number, out?: TrackSample): TrackSample {
     const normT = ((t % 1) + 1) % 1;
-    const exact = normT * SAMPLE_COUNT;
-    const i0 = Math.floor(exact) % SAMPLE_COUNT;
-    const i1 = (i0 + 1) % SAMPLE_COUNT;
-    const alpha = exact - Math.floor(exact);
-    const s0 = samples[i0];
-    const s1 = samples[i1];
-
     const res = out ?? {
       point: new THREE.Vector3(),
-      tangent: new THREE.Vector3(),
-      right: new THREE.Vector3(),
-      normal: new THREE.Vector3(),
+      tangent: new THREE.Vector3(0, 0, -1),
+      right: new THREE.Vector3(1, 0, 0),
+      normal: new THREE.Vector3(0, 1, 0),
       t: normT,
       bankAngle: 0,
     };
-
-    res.point.lerpVectors(s0.point, s1.point, alpha);
-    res.tangent.lerpVectors(s0.tangent, s1.tangent, alpha).normalize();
-    res.right.lerpVectors(s0.right, s1.right, alpha).normalize();
-    res.normal.lerpVectors(s0.normal, s1.normal, alpha).normalize();
+    res.point.set(0, 0, -normT * totalLength);
+    res.tangent.set(0, 0, -1);
+    res.right.set(1, 0, 0);
+    res.normal.set(0, 1, 0);
     res.t = normT;
-    res.bankAngle = THREE.MathUtils.lerp(s0.bankAngle, s1.bankAngle, alpha);
+    res.bankAngle = 0;
     return res;
   }
 
-  function findClosestSample(x: number, z: number, hintT?: number) {
-    let bestIdx = 0;
-    let bestDistSq = Infinity;
-
-    if (hintT !== undefined) {
-      const centerIdx = Math.floor((((hintT % 1) + 1) % 1) * SAMPLE_COUNT);
-      const windowRadius = 35;
-      for (let offset = -windowRadius; offset <= windowRadius; offset++) {
-        const idx = (centerIdx + offset + SAMPLE_COUNT) % SAMPLE_COUNT;
-        const p = samples[idx].point;
-        const dx = x - p.x;
-        const dz = z - p.z;
-        const dSq = dx * dx + dz * dz;
-        if (dSq < bestDistSq) {
-          bestDistSq = dSq;
-          bestIdx = idx;
-        }
-      }
-    }
-
-    if (hintT === undefined || bestDistSq > 900) {
-      bestDistSq = Infinity;
-      for (let i = 0; i < SAMPLE_COUNT; i++) {
-        const p = samples[i].point;
-        const dx = x - p.x;
-        const dz = z - p.z;
-        const dSq = dx * dx + dz * dz;
-        if (dSq < bestDistSq) {
-          bestDistSq = dSq;
-          bestIdx = i;
-        }
-      }
-    }
-
-    const base = samples[bestIdx];
-    const relX = x - base.point.x;
-    const relZ = z - base.point.z;
-    const along = relX * base.tangent.x + relZ * base.tangent.z;
-    const segLen = totalLength / SAMPLE_COUNT;
-    const refinedT = ((bestIdx + along / segLen) / SAMPLE_COUNT + 1) % 1;
-    const sample = sampleAtProgress(refinedT);
-
-    const dx = x - sample.point.x;
-    const dz = z - sample.point.z;
-    const lateralOffset = dx * sample.right.x + dz * sample.right.z;
-
+  function findClosestSample(x: number, z: number, _hintT?: number) {
+    let normT = -z / totalLength;
+    normT = ((normT % 1) + 1) % 1;
+    const sample = sampleAtProgress(normT);
     return {
       sample,
-      lateralOffset,
-      distanceSq: dx * dx + dz * dz,
+      lateralOffset: x,
+      distanceSq: x * x,
     };
   }
 

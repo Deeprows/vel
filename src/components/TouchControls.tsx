@@ -5,6 +5,7 @@ import { ControlScheme } from '../game/types';
 export interface TouchInputValues {
   left: boolean;
   right: boolean;
+  steer?: number;
   gas: boolean;
   brake: boolean;
   handbrake: boolean;
@@ -19,7 +20,7 @@ interface TouchControlsProps {
   onFirstTouch: () => void;
 }
 
-type ControlKey = keyof TouchInputValues;
+type ControlKey = keyof Omit<TouchInputValues, 'steer'>;
 
 export const TouchControls: React.FC<TouchControlsProps> = ({
   controlScheme,
@@ -29,9 +30,12 @@ export const TouchControls: React.FC<TouchControlsProps> = ({
   onFirstTouch,
 }) => {
   const activePointers = useRef<Map<number, ControlKey>>(new Map());
+  const [steerVal, setSteerVal] = useState(0);
+  const currentAnalogSteer = useRef(0);
   const [pressed, setPressed] = useState<TouchInputValues>({
     left: false,
     right: false,
+    steer: 0,
     gas: false,
     brake: false,
     handbrake: false,
@@ -42,6 +46,7 @@ export const TouchControls: React.FC<TouchControlsProps> = ({
     const next: TouchInputValues = {
       left: false,
       right: false,
+      steer: currentAnalogSteer.current,
       gas: false,
       brake: false,
       handbrake: false,
@@ -73,18 +78,30 @@ export const TouchControls: React.FC<TouchControlsProps> = ({
   };
 
   const wheelRef = useRef<HTMLDivElement>(null);
-  const [steerVal, setSteerVal] = useState(0);
 
   const handleWheelMove = (clientX: number) => {
     if (!wheelRef.current) return;
     const rect = wheelRef.current.getBoundingClientRect();
     const centerX = rect.left + rect.width / 2;
-    const val = Math.max(-1, Math.min(1, (clientX - centerX) / (rect.width * 0.45)));
-    setSteerVal(val);
+    const rawVal = Math.max(-1, Math.min(1, (clientX - centerX) / (rect.width * 0.45)));
+    setSteerVal(rawVal);
+
+    // Progressive analog curve with comfortable center deadzone
+    const deadzone = 0.08;
+    let analog = 0;
+    if (Math.abs(rawVal) > deadzone) {
+      const norm = (Math.abs(rawVal) - deadzone) / (1 - deadzone);
+      const curved = Math.pow(norm, 1.4) * 0.75;
+      // In physics: positive is left (+), negative is right (-)
+      analog = rawVal > 0 ? -curved : curved;
+    }
+    currentAnalogSteer.current = analog;
+
     const next: TouchInputValues = {
       ...pressed,
-      left: val < -0.12,
-      right: val > 0.12,
+      left: rawVal < -0.15,
+      right: rawVal > 0.15,
+      steer: analog,
     };
     setPressed(next);
     onChange(next);
@@ -92,10 +109,12 @@ export const TouchControls: React.FC<TouchControlsProps> = ({
 
   const handleWheelEnd = () => {
     setSteerVal(0);
+    currentAnalogSteer.current = 0;
     const next: TouchInputValues = {
       ...pressed,
       left: false,
       right: false,
+      steer: 0,
     };
     setPressed(next);
     onChange(next);

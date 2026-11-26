@@ -463,8 +463,8 @@ export class RacingGameEngine {
     const paint = PAINTS.find((p) => p.id === this.selectedPaintId) ?? PAINTS[0];
     const underglow = UNDERGLOWS.find((u) => u.id === this.selectedUnderglowId) ?? UNDERGLOWS[0];
 
-    const playerStartT = targetPhase === 'garage' ? 0.008 : 0.985;
-    const playerLane = targetPhase === 'garage' ? 0 : -3.4;
+    const playerStartT = targetPhase === 'garage' ? 0.008 : 0.012;
+    const playerLane = targetPhase === 'garage' ? 0 : -2.15;
 
     const player = createVehicleState({
       id: 'player',
@@ -489,12 +489,12 @@ export class RacingGameEngine {
     this.carRigs.set(player.id, playerRig);
     this.vehicles.push(player);
 
-    // Spawn 3 AI Rivals in Circuit mode
+    // Spawn 3 AI Rivals across the 4 straight highway lanes in Circuit mode
     if (targetPhase === 'countdown' && this.raceMode === 'circuit') {
       const rivalConfigs = [
-        { id: 'rival_1', name: 'K. Takahashi', car: CARS[2], paint: PAINTS[1], startT: 0.991, lane: 3.4, skill: 0.93 },
-        { id: 'rival_2', name: 'M. Vance', car: CARS[7], paint: PAINTS[2], startT: 0.988, lane: 3.4, skill: 0.97 },
-        { id: 'rival_3', name: 'S. Kira', car: CARS[6], paint: PAINTS[3], startT: 0.982, lane: -3.4, skill: 0.90 },
+        { id: 'rival_1', name: 'K. Takahashi', car: CARS[2], paint: PAINTS[1], startT: 0.022, lane: 2.15, skill: 0.93 },
+        { id: 'rival_2', name: 'M. Vance', car: CARS[7], paint: PAINTS[2], startT: 0.028, lane: 6.4, skill: 0.97 },
+        { id: 'rival_3', name: 'S. Kira', car: CARS[6], paint: PAINTS[3], startT: 0.008, lane: -6.4, skill: 0.90 },
       ];
 
       for (const rc of rivalConfigs) {
@@ -988,10 +988,10 @@ export class RacingGameEngine {
     this.clearCars();
 
     const gridPositions = [
-      { startT: 0.991, lane: -3.4 },
-      { startT: 0.988, lane: 3.4 },
-      { startT: 0.985, lane: -3.4 },
-      { startT: 0.982, lane: 3.4 },
+      { startT: 0.024, lane: 2.15 },
+      { startT: 0.018, lane: -2.15 },
+      { startT: 0.012, lane: 6.4 },
+      { startT: 0.008, lane: -6.4 },
     ];
 
     const localEntry = roster.find((p) => p.id === localPlayerId) ?? roster[0];
@@ -1150,13 +1150,13 @@ export class RacingGameEngine {
     const player = this.vehicles[0];
     if (!player || (this.phase !== 'racing' && this.phase !== 'countdown')) return;
     const sample = this.track.sampleAtProgress(player.trackT);
-    player.x = sample.point.x;
-    player.y = sample.point.y;
+    player.x = -2.15;
+    player.y = 0;
     player.z = sample.point.z;
     player.vx = 0;
     player.vz = 0;
     player.angularVelocity = 0;
-    player.yaw = Math.atan2(-sample.tangent.x, -sample.tangent.z);
+    player.yaw = 0;
   }
 
   public cycleCamera(): CameraMode {
@@ -1441,6 +1441,8 @@ export class RacingGameEngine {
       const subSteps = 2;
       const subDt = dt / subSteps;
 
+      const oldPlayerZ = player ? player.z : 0;
+
       for (let s = 0; s < subSteps; s++) {
         for (const v of this.vehicles) {
           if (v.isRemote) continue;
@@ -1462,6 +1464,13 @@ export class RacingGameEngine {
           this.camShake = Math.max(this.camShake, col.hitIntensity * 0.45);
           this.audio.playImpact(col.hitIntensity);
         }
+      }
+
+      // Seamless camera offset compensation when player wraps past the end of the straight track
+      if (player && player.z - oldPlayerZ > this.track.totalLength * 0.5) {
+        this.camPos.z += this.track.totalLength;
+        this.camLook.z += this.track.totalLength;
+        this.camera.position.z += this.track.totalLength;
       }
 
       // Smoothly interpolate & dead-reckon remote multiplayer vehicles

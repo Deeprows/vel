@@ -10,11 +10,9 @@ interface MinimapProps {
 export const Minimap: React.FC<MinimapProps> = ({ trackPoints, racers }) => {
   const pathD = useMemo(() => {
     if (trackPoints.length === 0) return '';
-    return (
-      trackPoints
-        .map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x.toFixed(1)} ${p.y.toFixed(1)}`)
-        .join(' ') + ' Z'
-    );
+    return trackPoints
+      .map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x.toFixed(1)} ${p.y.toFixed(1)}`)
+      .join(' ');
   }, [trackPoints]);
 
   // Project each racer's progress onto the minimap loop cleanly

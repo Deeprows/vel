@@ -199,8 +199,12 @@ export default function App() {
     const brake = kBrake || t.brake ? 1 : 0;
 
     let steer = 0;
-    if (kLeft || t.left) steer += 1;
-    if (kRight || t.right) steer -= 1;
+    if (t.steer !== undefined && Math.abs(t.steer) > 0.001) {
+      steer = t.steer;
+    } else {
+      if (kLeft || t.left) steer += 0.75;
+      if (kRight || t.right) steer -= 0.75;
+    }
 
     if (steer === 0 && controlSchemeRef.current === 'tilt') {
       steer = tiltSteerRef.current;

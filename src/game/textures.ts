@@ -105,34 +105,33 @@ export function createProceduralTextures(maxAnisotropy: number): ProceduralTextu
     rctx.fillRect(x, y, 2, 2);
   }
 
-  // Subtle tire wear tracks in the 4 lanes
-  const laneCenters = [84, 198, 314, 428];
+  // Subtle tire wear tracks in the 4 lanes matching reference screenshot
+  const laneCenters = [76, 196, 316, 436];
   for (const cx of laneCenters) {
-    const grad = rctx.createLinearGradient(cx - 28, 0, cx + 28, 0);
-    grad.addColorStop(0, 'rgba(8,10,15,0)');
-    grad.addColorStop(0.3, 'rgba(8,10,15,0.35)');
-    grad.addColorStop(0.5, 'rgba(28,34,46,0.12)');
-    grad.addColorStop(0.7, 'rgba(8,10,15,0.35)');
-    grad.addColorStop(1, 'rgba(8,10,15,0)');
+    const grad = rctx.createLinearGradient(cx - 30, 0, cx + 30, 0);
+    grad.addColorStop(0, 'rgba(10,12,18,0)');
+    grad.addColorStop(0.3, 'rgba(10,12,18,0.42)');
+    grad.addColorStop(0.5, 'rgba(26,30,42,0.18)');
+    grad.addColorStop(0.7, 'rgba(10,12,18,0.42)');
+    grad.addColorStop(1, 'rgba(10,12,18,0)');
     rctx.fillStyle = grad;
-    rctx.fillRect(cx - 28, 0, 56, 512);
+    rctx.fillRect(cx - 30, 0, 60, 512);
   }
 
-  // Outer solid shoulder lines (amber left/right edge)
-  rctx.fillStyle = '#d97706';
-  rctx.fillRect(14, 0, 7, 512);
-  rctx.fillRect(491, 0, 7, 512);
+  // Outer solid white border shoulder lines
+  rctx.fillStyle = '#ffffff';
+  rctx.fillRect(14, 0, 8, 512);
+  rctx.fillRect(490, 0, 8, 512);
 
-  // Center double yellow-amber line
-  rctx.fillStyle = '#f59e0b';
-  rctx.fillRect(250, 0, 4, 512);
-  rctx.fillRect(258, 0, 4, 512);
+  // Center solid white line dividing left & right carriage lanes
+  rctx.fillStyle = '#ffffff';
+  rctx.fillRect(253, 0, 6, 512);
 
-  // Dashed white lane dividers
-  rctx.fillStyle = 'rgba(226, 232, 240, 0.85)';
-  for (let y = 24; y < 512; y += 128) {
-    rctx.fillRect(136, y, 5, 64);
-    rctx.fillRect(371, y, 5, 64);
+  // Dashed white lane dividers (lanes 1-2 and lanes 3-4)
+  rctx.fillStyle = 'rgba(255, 255, 255, 0.92)';
+  for (let y = 16; y < 512; y += 128) {
+    rctx.fillRect(133, y, 6, 72);
+    rctx.fillRect(373, y, 6, 72);
   }
 
   const asphaltMap = new THREE.CanvasTexture(roadCanvas);

@@ -131,13 +131,14 @@ export function computeAiInput(
   dt: number,
   gripMultiplier = 1.0
 ): InputState {
+  const HIGHWAY_LANES = [-6.4, -2.15, 2.15, 6.4];
   v.aiLaneTimer -= dt;
   if (v.aiLaneTimer <= 0) {
-    v.aiLaneTimer = 2.0 + Math.random() * 2.5;
-    v.aiTargetLaneOffset = (Math.random() - 0.5) * (track.roadHalfWidth * 1.15);
+    v.aiLaneTimer = 3.5 + Math.random() * 3.0;
+    v.aiTargetLaneOffset = HIGHWAY_LANES[Math.floor(Math.random() * HIGHWAY_LANES.length)];
   }
 
-  // Avoid nearby cars ahead
+  // Avoid nearby cars ahead by switching to an open lane
   let laneAdjust = 0;
   for (const other of allVehicles) {
     if (other.id === v.id) continue;
@@ -240,10 +241,13 @@ export function stepVehiclePhysics(
   const absSpeed = Math.hypot(v.vx, v.vz);
   v.speedKmh = absSpeed * 3.6;
 
-  // Smooth steering angle with speed-sensitive reduction (prevents twitchiness at 300 km/h)
-  const speedSteerFactor = 1 / (1 + absSpeed * 0.014);
-  const targetSteer = input.steer * spec.maxSteerAngle * THREE.MathUtils.lerp(1.0, 0.58, 1 - speedSteerFactor);
-  const steerRate = spec.steerSpeed * (Math.abs(targetSteer) < Math.abs(v.steerAngle) ? 1.55 : 1.0);
+  // Smooth steering angle with progressive speed-sensitive reduction
+  // At low speeds (0-30 km/h): up to ~0.16 rad for easy positioning
+  // At highway speeds (120-300+ km/h): smoothly scaled down to ~0.035 rad (2 degrees)
+  // This eliminates twitchiness and ensures lane changes are silky smooth without spinning out!
+  const speedSteerFactor = 1 / (1 + Math.max(0, v.speedKmh - 25) * 0.016);
+  const targetSteer = input.steer * spec.maxSteerAngle * THREE.MathUtils.clamp(speedSteerFactor, 0.18, 1.0);
+  const steerRate = spec.steerSpeed * (Math.abs(targetSteer) < Math.abs(v.steerAngle) ? 2.8 : 1.4);
   v.steerAngle = THREE.MathUtils.lerp(v.steerAngle, targetSteer, Math.min(1, dt * steerRate));
 
   // Nitrous boost management
@@ -389,16 +393,29 @@ export function stepVehiclePhysics(
     (handbrakeDrift ? 1.52 : v.isDrifting ? 1.26 : trailBrakeBite * 0.98) *
     forwardSign;
 
-  // Responsive yaw damping (snappy turn-in, controllable counter-steer)
-  const yawResponsiveness = handbrakeDrift ? 7.8 : 11.2;
+  // Clamp maximum yaw rate to prevent unnatural 180-degree spin-outs
+  const maxYawRate = handbrakeDrift || v.isDrifting ? 2.5 : 1.35;
+  const clampedYawRate = THREE.MathUtils.clamp(targetYawRate, -maxYawRate, maxYawRate);
+
+  // Responsive yaw damping
+  const yawResponsiveness = handbrakeDrift ? 6.8 : 9.5;
   v.angularVelocity = THREE.MathUtils.lerp(
     v.angularVelocity,
-    targetYawRate,
+    clampedYawRate,
     Math.min(1, dt * yawResponsiveness)
   );
 
   // Integrate yaw first for crisp response
   v.yaw += v.angularVelocity * dt;
+
+  // Straight-line highway lane stabilization:
+  // When steering is released or near center, gently self-align yaw back towards 0 (straight down the highway!)
+  if (!handbrakeDrift && !v.isDrifting && Math.abs(input.steer) < 0.08) {
+    let yawError = -v.yaw;
+    while (yawError > Math.PI) yawError -= Math.PI * 2;
+    while (yawError < -Math.PI) yawError += Math.PI * 2;
+    v.yaw += yawError * Math.min(1, dt * 5.2);
+  }
 
   // Recompute forward/right after yaw step and apply longitudinal + lateral accelerations
   const nextFwdX = -Math.sin(v.yaw);
@@ -433,6 +450,11 @@ export function stepVehiclePhysics(
     v.wheelSpinAngle += (newVLong / 0.355) * dt;
   }
 
+  // Continuous highway wrapping when passing the end of the straight track
+  if (v.z <= -track.totalLength) {
+    v.z += track.totalLength;
+  }
+
   // Suspension pitch (squat on accel, dive on brake) & body roll (lateral G lean)
   const targetPitch = v.isBurnout
     ? -0.016 * v.burnoutIntensity
@@ -448,9 +470,8 @@ export function stepVehiclePhysics(
   const sample = closest.sample;
   v.trackT = sample.t;
 
-  // Snap Y smoothly to banked track surface height at lateral offset
-  const targetY = sample.point.y + closest.lateralOffset * Math.sin(sample.bankAngle);
-  v.y = THREE.MathUtils.lerp(v.y, targetY, Math.min(1, dt * 24));
+  // Snap Y smoothly to track surface height
+  v.y = THREE.MathUtils.lerp(v.y, 0, Math.min(1, dt * 24));
 
   v.onKerb = Math.abs(closest.lateralOffset) > track.roadHalfWidth - 0.35;
 

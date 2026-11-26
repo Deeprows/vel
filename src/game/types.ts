@@ -33,7 +33,7 @@ export interface TrackDefinition {
   name: string;
   location: string;
   lengthLabel: string;
-  difficulty: 'Technical' | 'High Speed' | 'Drift Heavy';
+  difficulty: 'Technical' | 'High Speed' | 'Drift Heavy' | 'Straight Highway';
   skyHex: string;
   fogHex: string;
   fogDensity: number;
