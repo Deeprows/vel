@@ -126,6 +126,7 @@ export interface TrackData {
     lateralOffset: number;
     distanceSq: number;
   };
+  setWeatherWetness: (rainIntensity: number) => void;
   dispose: () => void;
 }
 
@@ -563,6 +564,18 @@ export function createStreetTrack(
     };
   }
 
+  const setWeatherWetness = (rainIntensity: number) => {
+    const wet = THREE.MathUtils.clamp(rainIntensity, 0, 1);
+    roadMat.roughness = THREE.MathUtils.lerp(0.65, 0.32, wet);
+    roadMat.metalness = THREE.MathUtils.lerp(0.22, 0.38, wet);
+    roadMat.envMapIntensity = THREE.MathUtils.lerp(1.55, 2.35, wet);
+    if (!isSoftwareGl && roadMat instanceof THREE.MeshPhysicalMaterial) {
+      roadMat.clearcoat = THREE.MathUtils.lerp(0.34, 0.92, wet);
+      roadMat.clearcoatRoughness = THREE.MathUtils.lerp(0.38, 0.12, wet);
+    }
+    roadMat.needsUpdate = true;
+  };
+
   return {
     definition,
     group,
@@ -574,6 +587,7 @@ export function createStreetTrack(
     minimapPoints,
     sampleAtProgress,
     findClosestSample,
+    setWeatherWetness,
     dispose: () => {
       group.traverse((obj) => {
         if ((obj as THREE.Mesh).isMesh) {

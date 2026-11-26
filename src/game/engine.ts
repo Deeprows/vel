@@ -1,11 +1,13 @@
 import * as THREE from 'three';
 import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { CARS, PAINTS, UNDERGLOWS } from './cars';
 import { createCarModel, CarModelRig } from './carModel';
 import { createProceduralTextures, createSkyReflectionTexture, ProceduralTextureSet } from './textures';
 import { createStreetTrack, TrackData } from './track';
+import { WeatherPostShader } from './weatherShader';
 import {
   computeAiInput,
   createVehicleState,
@@ -25,6 +27,7 @@ import {
   RemoteTelemetryPacket,
   ReplayFrame,
   TrackId,
+  WeatherType,
 } from './types';
 
 function lerpAngle(a: number, b: number, t: number): number {
@@ -79,6 +82,7 @@ export class RacingGameEngine {
   private callbacks: EngineCallbacks;
   private renderer: THREE.WebGLRenderer;
   private composer: EffectComposer | null = null;
+  private weatherPass: ShaderPass | null = null;
   private bloomPass: UnrealBloomPass | null = null;
   private scene: THREE.Scene;
   private camera: THREE.PerspectiveCamera;
@@ -162,6 +166,13 @@ export class RacingGameEngine {
   // Procedural Sky Dome & PMREM Environment
   private skyBgTex: THREE.Texture | null = null;
   private envRT: THREE.WebGLRenderTarget | null = null;
+
+  // Dynamic Race Weather System
+  private weather: WeatherType = 'clear';
+  private gripMultiplier = 1.0;
+  private weatherTime = 0;
+  private rainInst: THREE.InstancedMesh;
+  private rainOffsets: Float32Array;
 
   constructor(container: HTMLElement, callbacks: EngineCallbacks) {
     this.container = container;
@@ -303,10 +314,37 @@ export class RacingGameEngine {
     this.resetSkidmarks();
     this.scene.add(this.skidInst);
 
-    // Post-processing Bloom on GPU devices (skipped on software WebGL)
+    // Pooled 3D Rain Streaks (camera-local streaming volume)
+    const rainCount = 260;
+    const rainGeo = new THREE.BoxGeometry(0.018, 0.78, 0.018);
+    const rainMat = new THREE.MeshBasicMaterial({
+      color: 0xdbeafe,
+      transparent: true,
+      opacity: 0.42,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false,
+    });
+    this.rainInst = new THREE.InstancedMesh(rainGeo, rainMat, rainCount);
+    this.rainInst.frustumCulled = false;
+    this.rainOffsets = new Float32Array(rainCount * 3);
+    for (let i = 0; i < rainCount; i++) {
+      this.rainOffsets[i * 3] = (Math.random() - 0.5) * 42;
+      this.rainOffsets[i * 3 + 1] = Math.random() * 18;
+      this.rainOffsets[i * 3 + 2] = (Math.random() - 0.5) * 42;
+      _dummy.position.set(0, -100, 0);
+      _dummy.scale.setScalar(0.001);
+      _dummy.updateMatrix();
+      this.rainInst.setMatrixAt(i, _dummy.matrix);
+    }
+    this.rainInst.instanceMatrix.needsUpdate = true;
+    this.scene.add(this.rainInst);
+
+    // Post-processing Weather Shader + Bloom on GPU devices (skipped on software WebGL)
     if (!this.isSoftwareGl) {
       this.composer = new EffectComposer(this.renderer);
       this.composer.addPass(new RenderPass(this.scene, this.camera));
+      this.weatherPass = new ShaderPass(WeatherPostShader);
+      this.composer.addPass(this.weatherPass);
       this.bloomPass = new UnrealBloomPass(new THREE.Vector2(width, height), 0.42, 0.38, 0.82);
       this.composer.addPass(this.bloomPass);
     }
@@ -459,6 +497,52 @@ export class RacingGameEngine {
     this.envRT = pmremGenerator.fromEquirectangular(skyTex);
     this.scene.environment = this.envRT.texture;
     pmremGenerator.dispose();
+    this.applyRaceWeather(this.weather);
+  }
+
+  private applyRaceWeather(nextWeather: WeatherType): void {
+    this.weather = nextWeather;
+    const def = this.track.definition;
+
+    if (nextWeather === 'light_rain') {
+      this.gripMultiplier = 0.78;
+      this.track.setWeatherWetness(1.0);
+      this.scene.fog = new THREE.FogExp2('#0b1322', def.fogDensity * 2.25);
+      if (this.weatherPass) {
+        this.weatherPass.uniforms.uRainIntensity.value = 0.85;
+        this.weatherPass.uniforms.uFogIntensity.value = 0.25;
+        (this.weatherPass.uniforms.uFogColor.value as THREE.Color).set('#0b1322');
+      }
+    } else if (nextWeather === 'fog') {
+      this.gripMultiplier = 0.90;
+      this.track.setWeatherWetness(0.28);
+      this.scene.fog = new THREE.FogExp2('#1f2937', def.fogDensity * 4.8);
+      if (this.weatherPass) {
+        this.weatherPass.uniforms.uRainIntensity.value = 0.0;
+        this.weatherPass.uniforms.uFogIntensity.value = 0.88;
+        (this.weatherPass.uniforms.uFogColor.value as THREE.Color).set('#1f2937');
+      }
+    } else {
+      this.gripMultiplier = 1.0;
+      this.track.setWeatherWetness(0.0);
+      this.scene.fog = new THREE.FogExp2(def.fogHex, def.fogDensity);
+      if (this.weatherPass) {
+        this.weatherPass.uniforms.uRainIntensity.value = 0.0;
+        this.weatherPass.uniforms.uFogIntensity.value = 0.0;
+        (this.weatherPass.uniforms.uFogColor.value as THREE.Color).set(def.fogHex);
+      }
+    }
+
+    if (nextWeather !== 'light_rain') {
+      _dummy.position.set(0, -100, 0);
+      _dummy.rotation.set(0, 0, 0);
+      _dummy.scale.setScalar(0.001);
+      _dummy.updateMatrix();
+      for (let i = 0; i < this.rainInst.count; i++) {
+        this.rainInst.setMatrixAt(i, _dummy.matrix);
+      }
+      this.rainInst.instanceMatrix.needsUpdate = true;
+    }
   }
 
   private resetSkidmarks(): void {
@@ -798,6 +882,8 @@ export class RacingGameEngine {
     this.replayRecordAccum = 0;
     this.cameraMode = 'chase';
     this.resetSkidmarks();
+    // Randomly trigger light rain or dense fog at race start
+    this.applyRaceWeather(Math.random() < 0.5 ? 'light_rain' : 'fog');
     this.setupVehiclesForPhase('countdown');
     this.emitHud();
   }
@@ -830,6 +916,12 @@ export class RacingGameEngine {
     this.replayRecordAccum = 0;
     this.cameraMode = 'chase';
     this.resetSkidmarks();
+    const seedStr = `${trackId}:${roster.map((r) => r.id).sort().join(',')}`;
+    let seedHash = 0;
+    for (let i = 0; i < seedStr.length; i++) {
+      seedHash = (seedHash * 31 + seedStr.charCodeAt(i)) | 0;
+    }
+    this.applyRaceWeather(Math.abs(seedHash) % 2 === 0 ? 'light_rain' : 'fog');
 
     this.clearCars();
 
@@ -954,6 +1046,7 @@ export class RacingGameEngine {
     this.remoteTargets.clear();
     this.phase = 'garage';
     this.resetSkidmarks();
+    this.applyRaceWeather('clear');
     this.audio.updateTelemetry({
       active: false,
       rpm: 950,
@@ -1201,8 +1294,16 @@ export class RacingGameEngine {
           if (v.isRemote) continue;
           const inp = v.isPlayer
             ? this.inputState
-            : computeAiInput(v, this.vehicles, this.track, subDt);
-          stepVehiclePhysics(v, inp, this.track, subDt, this.raceTimeMs, this.totalLaps);
+            : computeAiInput(v, this.vehicles, this.track, subDt, this.gripMultiplier);
+          stepVehiclePhysics(
+            v,
+            inp,
+            this.track,
+            subDt,
+            this.raceTimeMs,
+            this.totalLaps,
+            this.gripMultiplier
+          );
         }
         const col = resolveVehicleCollisions(this.vehicles);
         if (col.playerHit && col.hitIntensity > 0.12) {
@@ -1462,6 +1563,41 @@ export class RacingGameEngine {
       this.updateParticles(dt);
     }
 
+    // Update dynamic weather rain particles & shader uniforms
+    this.weatherTime += dt;
+    const activePlayerSpeedNorm = player ? THREE.MathUtils.clamp(player.speedKmh / 300, 0, 1) : 0;
+    if (this.weatherPass) {
+      this.weatherPass.uniforms.uTime.value = this.weatherTime;
+      this.weatherPass.uniforms.uSpeedNorm.value = activePlayerSpeedNorm;
+    }
+    if (this.weather === 'light_rain' && this.phase !== 'garage' && this.phase !== 'paused') {
+      const cx = this.camera.position.x;
+      const cy = this.camera.position.y;
+      const cz = this.camera.position.z;
+      const fwdX = player ? -Math.sin(player.yaw) : 0;
+      const fwdZ = player ? -Math.cos(player.yaw) : -1;
+      const slantAmt = 0.16 + activePlayerSpeedNorm * 0.34;
+      for (let i = 0; i < this.rainInst.count; i++) {
+        const idx = i * 3;
+        this.rainOffsets[idx + 1] -= dt * 26;
+        if (this.rainOffsets[idx + 1] < -2) {
+          this.rainOffsets[idx] = (Math.random() - 0.5) * 42;
+          this.rainOffsets[idx + 1] = 16 + Math.random() * 4;
+          this.rainOffsets[idx + 2] = (Math.random() - 0.5) * 42;
+        }
+        _dummy.position.set(
+          cx + fwdX * 12 + this.rainOffsets[idx],
+          cy + this.rainOffsets[idx + 1],
+          cz + fwdZ * 12 + this.rainOffsets[idx + 2]
+        );
+        _dummy.rotation.set(slantAmt * fwdZ, 0, -slantAmt * fwdX);
+        _dummy.scale.set(1, 1 + activePlayerSpeedNorm * 0.65, 1);
+        _dummy.updateMatrix();
+        this.rainInst.setMatrixAt(i, _dummy.matrix);
+      }
+      this.rainInst.instanceMatrix.needsUpdate = true;
+    }
+
     // Render frame
     if (this.composer && !this.isSoftwareGl) {
       this.composer.render();
@@ -1579,6 +1715,8 @@ export class RacingGameEngine {
       countdownValue: this.phase === 'countdown' ? Math.max(1, Math.ceil(this.countdownTimer)) : -1,
       racePhase: this.phase,
       wrongWay: player.wrongWay,
+      weather: this.weather,
+      gripMultiplier: this.gripMultiplier,
       replayCurrentMs: this.replayPlaybackMs,
       replayDurationMs: this.getReplayDurationMs(),
       replayPaused: this.replayPaused,
@@ -1644,6 +1782,8 @@ export class RacingGameEngine {
     (this.sparkInst.material as THREE.Material).dispose();
     this.skidInst.geometry.dispose();
     (this.skidInst.material as THREE.Material).dispose();
+    this.rainInst.geometry.dispose();
+    (this.rainInst.material as THREE.Material).dispose();
     this.audio.dispose();
 
     if (this.composer) {

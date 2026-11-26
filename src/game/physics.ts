@@ -124,7 +124,8 @@ export function computeAiInput(
   v: VehiclePhysicsState,
   allVehicles: VehiclePhysicsState[],
   track: TrackData,
-  dt: number
+  dt: number,
+  gripMultiplier = 1.0
 ): InputState {
   v.aiLaneTimer -= dt;
   if (v.aiLaneTimer <= 0) {
@@ -182,7 +183,10 @@ export function computeAiInput(
   // Corner curvature speed control
   const curveDot = targetSample.tangent.dot(farSample.tangent);
   const cornerSeverity = 1 - THREE.MathUtils.clamp(curveDot, 0, 1);
-  const targetCornerSpeedMs = THREE.MathUtils.lerp(82, 29, Math.min(1, cornerSeverity * 5.2)) * v.aiSkillMultiplier;
+  const targetCornerSpeedMs =
+    THREE.MathUtils.lerp(82, 29, Math.min(1, cornerSeverity * 5.2)) *
+    v.aiSkillMultiplier *
+    Math.sqrt(THREE.MathUtils.clamp(gripMultiplier, 0.65, 1.0));
 
   let throttle = 1.0;
   let brake = 0;
@@ -212,7 +216,8 @@ export function stepVehiclePhysics(
   track: TrackData,
   dt: number,
   raceTimeMs: number,
-  totalLaps: number
+  totalLaps: number,
+  gripMultiplier = 1.0
 ): void {
   const spec = v.spec;
   v.wallScraping = false;
@@ -299,8 +304,8 @@ export function stepVehiclePhysics(
 
   if (input.brake > 0.01) {
     if (vLong > 1.2) {
-      // Forward braking
-      longForce -= input.brake * spec.brakeForce;
+      // Forward braking modulated by road surface grip
+      longForce -= input.brake * spec.brakeForce * THREE.MathUtils.lerp(0.80, 1.0, gripMultiplier);
     } else {
       // Reverse gear
       longForce -= input.brake * spec.maxEngineForce * 0.52;
@@ -308,7 +313,7 @@ export function stepVehiclePhysics(
   }
 
   if (input.handbrake && absSpeed > 2) {
-    longForce -= Math.sign(vLong) * spec.brakeForce * 0.35;
+    longForce -= Math.sign(vLong) * spec.brakeForce * 0.35 * THREE.MathUtils.lerp(0.82, 1.0, gripMultiplier);
   }
 
   // Aerodynamic drag & rolling resistance
@@ -329,7 +334,8 @@ export function stepVehiclePhysics(
   // Pacejka-inspired progressive lateral tire slip & drift physics
   const slipAngle = absSpeed > 2.5 ? Math.atan2(vLat, Math.max(2.0, Math.abs(vLong))) : 0;
   const handbrakeDrift = input.handbrake && absSpeed > 10;
-  const highSlipDrift = Math.abs(slipAngle) > 0.19 && absSpeed > 13;
+  const wetSlipThreshold = gripMultiplier < 0.85 ? 0.145 : 0.19;
+  const highSlipDrift = Math.abs(slipAngle) > wetSlipThreshold && absSpeed > 12;
   v.isDrifting = handbrakeDrift || highSlipDrift;
   v.driftIntensity = v.isDrifting
     ? THREE.MathUtils.clamp(Math.abs(slipAngle) * 1.65 + (handbrakeDrift ? 0.35 : 0), 0, 1)
@@ -339,8 +345,10 @@ export function stepVehiclePhysics(
   const trailBrakeBite = 1 + Math.max(0, -weightShift) * 0.42;
   const effectiveRearGrip =
     spec.rearGrip *
+    gripMultiplier *
     (handbrakeDrift ? spec.driftGripFactor * 0.68 : v.isDrifting ? spec.driftGripFactor : 1.0);
-  const effectiveFrontGrip = spec.frontGrip * trailBrakeBite * (handbrakeDrift ? 0.94 : 1.0);
+  const effectiveFrontGrip =
+    spec.frontGrip * gripMultiplier * trailBrakeBite * (handbrakeDrift ? 0.94 : 1.0);
   const combinedGrip =
     (frontLoadFactor * effectiveFrontGrip + rearLoadFactor * effectiveRearGrip) *
     Math.pow(totalNormalForce / staticWeight, 0.88);

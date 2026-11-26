@@ -21,6 +21,7 @@ var current_rpm: float = 980.0
 var speed_kmh: float = 0.0
 var drift_score: float = 0.0
 var is_drifting: bool = false
+var surface_grip_multiplier: float = 1.0
 
 var _steer_target: float = 0.0
 var _touch_throttle: float = 0.0
@@ -51,6 +52,14 @@ func set_touch_controls(throttle: float, brake: float, steer: float, handbrake: 
 	_touch_steer = clamp(steer, -1.0, 1.0)
 	_touch_handbrake = handbrake
 	_touch_nos = nos
+
+
+func set_surface_grip_multiplier(mult: float) -> void:
+	surface_grip_multiplier = clamp(mult, 0.55, 1.15)
+	if wheel_fl:
+		wheel_fl.wheel_friction_slip = 3.1 * surface_grip_multiplier
+	if wheel_fr:
+		wheel_fr.wheel_friction_slip = 3.1 * surface_grip_multiplier
 
 
 func _physics_process(delta: float) -> void:
@@ -108,17 +117,17 @@ func _physics_process(delta: float) -> void:
 		drive_force = -brake_in * (max_engine_force * 0.55)
 
 	engine_force = drive_force
-	brake = brake_in * max_brake_force if forward_speed > 1.5 else 0.0
+	brake = brake_in * max_brake_force * lerp(0.8, 1.0, surface_grip_multiplier) if forward_speed > 1.5 else 0.0
 
-	# Handbrake rear slip modulation
+	# Handbrake rear slip modulation scaled by weather surface grip
 	if handbrake_in:
-		wheel_rl.wheel_friction_slip = 1.15
-		wheel_rr.wheel_friction_slip = 1.15
-		wheel_rl.brake = max_brake_force * 0.85
-		wheel_rr.brake = max_brake_force * 0.85
+		wheel_rl.wheel_friction_slip = 1.15 * surface_grip_multiplier
+		wheel_rr.wheel_friction_slip = 1.15 * surface_grip_multiplier
+		wheel_rl.brake = max_brake_force * 0.85 * surface_grip_multiplier
+		wheel_rr.brake = max_brake_force * 0.85 * surface_grip_multiplier
 	else:
-		wheel_rl.wheel_friction_slip = 2.65
-		wheel_rr.wheel_friction_slip = 2.65
+		wheel_rl.wheel_friction_slip = 2.65 * surface_grip_multiplier
+		wheel_rr.wheel_friction_slip = 2.65 * surface_grip_multiplier
 		wheel_rl.brake = 0.0
 		wheel_rr.brake = 0.0
 

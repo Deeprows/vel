@@ -18,6 +18,8 @@ export type CameraMode = 'chase' | 'hood' | 'cinematic';
 
 export type ControlScheme = 'buttons' | 'tilt';
 
+export type WeatherType = 'clear' | 'light_rain' | 'fog';
+
 export interface TrackDefinition {
   id: TrackId;
   name: string;
@@ -141,6 +143,8 @@ export interface HudTelemetry {
   racePhase: 'garage' | 'countdown' | 'racing' | 'paused' | 'finished' | 'replay';
   racers: RacerTelemetry[];
   wrongWay: boolean;
+  weather: WeatherType;
+  gripMultiplier: number;
   replayCurrentMs: number;
   replayDurationMs: number;
   replayPaused: boolean;

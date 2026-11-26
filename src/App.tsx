@@ -16,6 +16,8 @@ import {
   Check,
   X,
   Swords,
+  CloudRain,
+  CloudFog,
 } from 'lucide-react';
 import { RacingGameEngine } from './game/engine';
 import { CARS, PAINTS, UNDERGLOWS } from './game/cars';
@@ -88,6 +90,8 @@ const INITIAL_HUD: HudTelemetry = {
   racePhase: 'garage',
   racers: [],
   wrongWay: false,
+  weather: 'clear',
+  gripMultiplier: 1,
   replayCurrentMs: 0,
   replayDurationMs: 0,
   replayPaused: false,
@@ -752,6 +756,22 @@ export default function App() {
                   {hud.activeDriftPoints > 0
                     ? `+${hud.activeDriftPoints}`
                     : hud.driftScore.toLocaleString()}
+                </span>
+              </div>
+            )}
+            {/* Dynamic Weather & Grip Telemetry */}
+            {hud.weather !== 'clear' && (
+              <div className="bg-[#080B12]/82 border border-white/12 rounded-lg px-3 py-1 flex items-center gap-2 text-[11px] font-semibold">
+                {hud.weather === 'light_rain' ? (
+                  <CloudRain className="w-3.5 h-3.5 text-sky-400 shrink-0" />
+                ) : (
+                  <CloudFog className="w-3.5 h-3.5 text-slate-300 shrink-0" />
+                )}
+                <span className="text-slate-100">
+                  {hud.weather === 'light_rain' ? 'Light Rain' : 'Dense Fog'}
+                </span>
+                <span className="font-telemetry text-sky-300">
+                  {Math.round(hud.gripMultiplier * 100)}% Grip
                 </span>
               </div>
             )}
