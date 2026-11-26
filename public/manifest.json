@@ -1,0 +1,33 @@
+{
+  "id": "/",
+  "name": "Apex Velocity — Street Racing",
+  "short_name": "ApexVelocity",
+  "description": "High-speed 3D street racing game for Android and desktop with realistic vehicle physics, drift dynamics, and nocturnal city visuals.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "fullscreen",
+  "orientation": "landscape",
+  "theme_color": "#080B12",
+  "background_color": "#080B12",
+  "categories": ["games", "racing", "sports"],
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}

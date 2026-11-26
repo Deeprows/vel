@@ -1069,13 +1069,24 @@ export function createCarModel(
     roughness: 0.18,
   });
 
-  const flameGeo = new THREE.ConeGeometry(0.08, 0.95, 10);
-  flameGeo.rotateX(Math.PI / 2);
-  flameGeo.translate(0, 0, 0.48);
-  const flameMat = new THREE.MeshBasicMaterial({
-    color: 0x38bdf8,
+  const coreFlameGeo = new THREE.ConeGeometry(0.065, 0.9, 12);
+  coreFlameGeo.rotateX(Math.PI / 2);
+  coreFlameGeo.translate(0, 0, 0.45);
+  const coreFlameMat = new THREE.MeshBasicMaterial({
+    color: 0x93c5fd,
     transparent: true,
-    opacity: 0.92,
+    opacity: 0.95,
+    blending: THREE.AdditiveBlending,
+    depthWrite: false,
+  });
+
+  const coronaFlameGeo = new THREE.ConeGeometry(0.115, 1.35, 12);
+  coronaFlameGeo.rotateX(Math.PI / 2);
+  coronaFlameGeo.translate(0, 0, 0.65);
+  const coronaFlameMat = new THREE.MeshBasicMaterial({
+    color: 0x0284c7,
+    transparent: true,
+    opacity: 0.72,
     blending: THREE.AdditiveBlending,
     depthWrite: false,
   });
@@ -1099,11 +1110,17 @@ export function createCarModel(
     pipe.position.set(ex, 0.27, halfL + 0.04);
     chassisGroup.add(pipe);
 
-    const flame = new THREE.Mesh(flameGeo, flameMat);
-    flame.position.set(ex, 0.27, halfL + 0.11);
-    flame.visible = false;
-    chassisGroup.add(flame);
-    nosFlames.push(flame);
+    const coronaFlame = new THREE.Mesh(coronaFlameGeo, coronaFlameMat);
+    coronaFlame.position.set(ex, 0.27, halfL + 0.11);
+    coronaFlame.visible = false;
+    chassisGroup.add(coronaFlame);
+    nosFlames.push(coronaFlame);
+
+    const coreFlame = new THREE.Mesh(coreFlameGeo, coreFlameMat);
+    coreFlame.position.set(ex, 0.27, halfL + 0.11);
+    coreFlame.visible = false;
+    chassisGroup.add(coreFlame);
+    nosFlames.push(coreFlame);
   }
 
   // 11. Wheels tailored to car archetype
@@ -1249,13 +1266,19 @@ export function createCarModel(
         Math.min(1, dt * 8)
       );
 
-      nosFlicker += dt * 42;
+      nosFlicker += dt * 55;
       for (let i = 0; i < nosFlames.length; i++) {
         const f = nosFlames[i];
         f.visible = nosActive;
         if (nosActive) {
-          const s = 0.85 + Math.sin(nosFlicker + i * 1.7) * 0.28;
-          f.scale.set(0.95, 0.95, s * 1.4);
+          const isCore = i % 2 === 1;
+          const jitter = Math.sin(nosFlicker * (isCore ? 1.8 : 1.3) + i * 1.7) * 0.32 + (Math.random() - 0.5) * 0.24;
+          const baseLength = isCore ? 1.35 : 1.65;
+          const scaleZ = Math.max(0.65, baseLength + jitter);
+          const scaleRadial = isCore
+            ? 0.92 + Math.sin(nosFlicker * 1.5 + i) * 0.16
+            : 1.1 + Math.cos(nosFlicker * 1.1 + i) * 0.22;
+          f.scale.set(scaleRadial, scaleRadial, scaleZ);
         }
       }
     },

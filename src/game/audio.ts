@@ -12,6 +12,7 @@ export interface EngineAudioTelemetry {
   isDrifting?: boolean;
   onKerb?: boolean;
   nosActive: boolean;
+  isBurnout?: boolean;
 }
 
 function makeDistortionCurve(amount = 24): Float32Array<ArrayBuffer> {
@@ -448,16 +449,21 @@ export class RaceAudioEngine {
     this.lastThrottle = params.throttle;
     this.lastRpmNorm = rpmNorm;
 
-    // --- 2. Tire Screeching Events During Drift ---
-    const driftingNow = Boolean(params.isDrifting || params.driftIntensity > 0.08);
-    if (driftingNow && !this.wasDrifting && speedKmh > 35) {
-      this.triggerDriftStart(params.driftIntensity);
+    // --- 2. Tire Screeching Events During Drift & Burnout ---
+    const isBurnout = Boolean(params.isBurnout);
+    const driftingNow = Boolean(params.isDrifting || params.driftIntensity > 0.08 || isBurnout);
+    if (driftingNow && !this.wasDrifting && (speedKmh > 35 || isBurnout)) {
+      this.triggerDriftStart(isBurnout ? 0.9 : params.driftIntensity);
     }
     this.wasDrifting = driftingNow;
 
     const slip = Math.max(0, Math.min(1, params.driftIntensity));
     const speedFactor = Math.min(1, speedKmh / 140);
-    const screechLevel = slip > 0.04 ? (0.06 + slip * 0.19) * (0.45 + speedFactor * 0.55) : 0;
+    const screechLevel = isBurnout
+      ? 0.22
+      : slip > 0.04
+        ? (0.06 + slip * 0.19) * (0.45 + speedFactor * 0.55)
+        : 0;
 
     this.tireGain.gain.setTargetAtTime(screechLevel, now, 0.035);
     this.tireFilterMain.frequency.setTargetAtTime(1180 + slip * 540 + speedFactor * 220, now, 0.04);

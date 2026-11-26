@@ -5,6 +5,7 @@ import {
   Pause,
   Play,
   RotateCcw,
+  RotateCw,
   Volume2,
   VolumeX,
   Trophy,
@@ -130,6 +131,13 @@ export default function App() {
   const [challengeRewardInfo, setChallengeRewardInfo] = useState<ChallengeEvalResult | null>(null);
   const [contextLost, setContextLost] = useState(false);
   const [tiltDeg, setTiltDeg] = useState(0);
+
+  // Landscape Orientation Enforcement & Portrait Detection
+  const [isPortrait, setIsPortrait] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return false;
+    return window.innerHeight > window.innerWidth;
+  });
+  const [dismissPortraitWarning, setDismissPortraitWarning] = useState(false);
 
   // Real-time multiplayer & Same Wi-Fi state
   const mpClientRef = useRef<MultiplayerClient | null>(null);
@@ -548,6 +556,53 @@ export default function App() {
     return () => window.removeEventListener('deviceorientation', handleOrientation);
   }, [controlScheme, pushMergedInput]);
 
+  // Monitor orientation changes and attempt landscape lock
+  useEffect(() => {
+    const checkOrientation = () => {
+      setIsPortrait(window.innerHeight > window.innerWidth);
+    };
+    window.addEventListener('resize', checkOrientation);
+    window.addEventListener('orientationchange', checkOrientation);
+
+    const tryLockLandscape = async () => {
+      try {
+        const orient = window.screen?.orientation as any;
+        if (orient && typeof orient.lock === 'function') {
+          await orient.lock('landscape');
+        }
+      } catch {}
+    };
+    tryLockLandscape();
+
+    const onUserInteraction = () => {
+      tryLockLandscape();
+      window.removeEventListener('click', onUserInteraction);
+      window.removeEventListener('touchstart', onUserInteraction);
+    };
+    window.addEventListener('click', onUserInteraction);
+    window.addEventListener('touchstart', onUserInteraction);
+
+    return () => {
+      window.removeEventListener('resize', checkOrientation);
+      window.removeEventListener('orientationchange', checkOrientation);
+      window.removeEventListener('click', onUserInteraction);
+      window.removeEventListener('touchstart', onUserInteraction);
+    };
+  }, []);
+
+  const handleEnterLandscapeFullscreen = async () => {
+    try {
+      if (!document.fullscreenElement) {
+        await document.documentElement.requestFullscreen?.();
+      }
+      const orient = window.screen?.orientation as any;
+      if (orient && typeof orient.lock === 'function') {
+        await orient.lock('landscape');
+      }
+    } catch {}
+    setIsPortrait(false);
+  };
+
   const handleSelectControlScheme = async (scheme: ControlScheme) => {
     if (scheme === 'tilt') {
       const devOrient = DeviceOrientationEvent as unknown as {
@@ -573,9 +628,15 @@ export default function App() {
     engineRef.current?.setMuted(next);
   };
 
-  const handleToggleFullscreen = () => {
+  const handleToggleFullscreen = async () => {
     if (!document.fullscreenElement) {
-      document.documentElement.requestFullscreen?.().catch(() => {});
+      try {
+        await document.documentElement.requestFullscreen?.();
+        const orient = window.screen?.orientation as any;
+        if (orient && typeof orient.lock === 'function') {
+          await orient.lock('landscape');
+        }
+      } catch {}
     } else {
       document.exitFullscreen?.().catch(() => {});
     }
@@ -585,6 +646,12 @@ export default function App() {
     setRaceResult(null);
     setSavedScoreInfo(null);
     setChallengeRewardInfo(null);
+    try {
+      const orient = window.screen?.orientation as any;
+      if (orient && typeof orient.lock === 'function') {
+        orient.lock('landscape').catch(() => {});
+      }
+    } catch {}
     engineRef.current?.startRace(raceMode);
   };
 
@@ -1384,6 +1451,60 @@ export default function App() {
             setInviteFeedback(null);
           }}
         />
+      )}
+
+      {/* Landscape Orientation Requirement / Rotate Device Overlay */}
+      {isPortrait && !dismissPortraitWarning && (
+        <div className="fixed inset-0 z-[100] bg-[#04060a]/94 backdrop-blur-md flex flex-col items-center justify-center p-6 text-center select-none">
+          <div className="relative w-28 h-28 mb-5 flex items-center justify-center">
+            <div className="absolute inset-0 rounded-full border border-cyan-500/30 animate-ping opacity-25" />
+            <div className="w-24 h-24 rounded-2xl bg-cyan-950/40 border border-cyan-400/40 flex items-center justify-center shadow-[0_0_35px_rgba(6,182,212,0.25)]">
+              <svg
+                className="w-14 h-14 text-cyan-400 animate-[spin_4s_ease-in-out_infinite]"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <rect width="14" height="20" x="5" y="2" rx="2" />
+                <path d="M12 18h.01" />
+                <path d="M17 6c2 2 3 5 2 8" strokeDasharray="2 2" />
+                <path d="m20 12 2 2-3 2" />
+              </svg>
+            </div>
+          </div>
+
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 text-xs font-mono font-semibold tracking-wider uppercase mb-2">
+            Landscape View Recommended
+          </div>
+
+          <h2 className="font-display text-2xl sm:text-3xl font-extrabold text-white tracking-wide uppercase">
+            Rotate To Landscape
+          </h2>
+          <p className="text-sm text-slate-300 mt-2 max-w-sm leading-relaxed">
+            Apex Velocity is built for high-speed cockpit racing in widescreen landscape. Turn your device sideways for the optimal field of view and steering controls.
+          </p>
+
+          <div className="mt-6 flex flex-col sm:flex-row gap-3 w-full max-w-xs">
+            <button
+              type="button"
+              onClick={handleEnterLandscapeFullscreen}
+              className="w-full py-3 px-4 rounded-xl font-display font-bold uppercase tracking-wider text-sm bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 shadow-lg shadow-cyan-500/25 active:scale-[0.98] transition-all flex items-center justify-center gap-2 cursor-pointer"
+            >
+              <RotateCw className="w-4 h-4" />
+              Lock Landscape
+            </button>
+            <button
+              type="button"
+              onClick={() => setDismissPortraitWarning(true)}
+              className="w-full py-2.5 px-4 rounded-xl font-display font-semibold uppercase tracking-wider text-xs bg-slate-800/80 hover:bg-slate-700/80 text-slate-400 hover:text-slate-200 border border-slate-700/60 active:scale-[0.98] transition-all cursor-pointer"
+            >
+              Continue In Portrait
+            </button>
+          </div>
+        </div>
       )}
     </div>
   );

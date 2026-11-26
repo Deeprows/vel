@@ -44,6 +44,7 @@ const _fwd = new THREE.Vector3();
 const _right = new THREE.Vector3();
 const _up = new THREE.Vector3(0, 1, 0);
 const _dummy = new THREE.Object3D();
+const _tempColor = new THREE.Color();
 
 interface SmokeParticle {
   active: boolean;
@@ -68,6 +69,20 @@ interface SparkParticle {
   vz: number;
   life: number;
   maxLife: number;
+}
+
+interface FlameParticle {
+  active: boolean;
+  x: number;
+  y: number;
+  z: number;
+  vx: number;
+  vy: number;
+  vz: number;
+  life: number;
+  maxLife: number;
+  scale: number;
+  core: boolean;
 }
 
 export interface EngineCallbacks {
@@ -157,6 +172,11 @@ export class RacingGameEngine {
   private sparkInst: THREE.InstancedMesh;
   private sparkPool: SparkParticle[] = [];
   private sparkCursor = 0;
+
+  // Pooled NOS Exhaust Flame Particles
+  private nosFlameInst: THREE.InstancedMesh;
+  private nosFlamePool: FlameParticle[] = [];
+  private nosFlameCursor = 0;
 
   // Pooled Tire Skidmarks
   private skidInst: THREE.InstancedMesh;
@@ -253,7 +273,7 @@ export class RacingGameEngine {
     this.scene.add(this.track.group);
 
     // Pooled Smoke Particles
-    const smokeCount = 90;
+    const smokeCount = 220;
     const smokeGeo = new THREE.PlaneGeometry(1, 1);
     const smokeMat = new THREE.MeshBasicMaterial({
       map: this.textures.smokeMap,
@@ -296,8 +316,49 @@ export class RacingGameEngine {
     this.sparkInst.instanceMatrix.needsUpdate = true;
     this.scene.add(this.sparkInst);
 
+    // Pooled NOS Exhaust Flame Particles
+    const nosFlameCount = 180;
+    const nosFlameGeo = new THREE.PlaneGeometry(0.36, 0.36);
+    const nosFlameMat = new THREE.MeshBasicMaterial({
+      map: this.textures.smokeMap,
+      color: 0xffffff,
+      blending: THREE.AdditiveBlending,
+      transparent: true,
+      opacity: 0.95,
+      depthWrite: false,
+      side: THREE.DoubleSide,
+    });
+    this.nosFlameInst = new THREE.InstancedMesh(nosFlameGeo, nosFlameMat, nosFlameCount);
+    this.nosFlameInst.frustumCulled = false;
+    const defaultFlameColor = new THREE.Color(0x38bdf8);
+    for (let i = 0; i < nosFlameCount; i++) {
+      this.nosFlamePool.push({
+        active: false,
+        x: 0,
+        y: -50,
+        z: 0,
+        vx: 0,
+        vy: 0,
+        vz: 0,
+        life: 0,
+        maxLife: 0.1,
+        scale: 1,
+        core: false,
+      });
+      _dummy.position.set(0, -50, 0);
+      _dummy.scale.setScalar(0.001);
+      _dummy.updateMatrix();
+      this.nosFlameInst.setMatrixAt(i, _dummy.matrix);
+      this.nosFlameInst.setColorAt(i, defaultFlameColor);
+    }
+    this.nosFlameInst.instanceMatrix.needsUpdate = true;
+    if (this.nosFlameInst.instanceColor) {
+      this.nosFlameInst.instanceColor.needsUpdate = true;
+    }
+    this.scene.add(this.nosFlameInst);
+
     // Pooled Tire Drift & Braking Skidmarks
-    const skidCount = 420;
+    const skidCount = 600;
     const skidGeo = new THREE.PlaneGeometry(0.32, 0.92);
     skidGeo.rotateX(-Math.PI / 2);
     const skidMat = new THREE.MeshBasicMaterial({
@@ -1139,6 +1200,56 @@ export class RacingGameEngine {
     p.scale = scale;
   }
 
+  private spawnBurnoutSmoke(x: number, y: number, z: number, intensity: number): void {
+    const p = this.smokePool[this.smokeCursor];
+    this.smokeCursor = (this.smokeCursor + 1) % this.smokePool.length;
+    p.active = true;
+    p.x = x + (Math.random() - 0.5) * 0.7;
+    p.y = y + 0.15;
+    p.z = z + (Math.random() - 0.5) * 0.7;
+    p.vx = (Math.random() - 0.5) * 3.2;
+    p.vy = 1.4 + Math.random() * 2.2;
+    p.vz = (Math.random() - 0.5) * 3.2;
+    p.life = 0;
+    p.maxLife = 0.82 + Math.random() * 0.55;
+    p.scale = (1.6 + Math.random() * 0.9) * (0.85 + intensity * 0.65);
+  }
+
+  private spawnNosFlame(
+    x: number,
+    y: number,
+    z: number,
+    fwdX: number,
+    fwdZ: number,
+    rightX: number,
+    rightZ: number,
+    vx: number,
+    vz: number,
+    isCore: boolean
+  ): void {
+    const p = this.nosFlamePool[this.nosFlameCursor];
+    this.nosFlameCursor = (this.nosFlameCursor + 1) % this.nosFlamePool.length;
+    p.active = true;
+    p.core = isCore;
+    p.x = x + (Math.random() - 0.5) * 0.04;
+    p.y = y + (Math.random() - 0.5) * 0.04;
+    p.z = z + (Math.random() - 0.5) * 0.04;
+
+    // Launch backwards in vehicle local space with bright blue conical emission plume
+    const shootSpeed = isCore ? -(28 + Math.random() * 24) : -(19 + Math.random() * 18);
+    const coneAngle = Math.random() * Math.PI * 2;
+    const coneRadius = isCore ? (0.07 + Math.random() * 0.14) : (0.16 + Math.random() * 0.3);
+    const spreadRight = Math.cos(coneAngle) * coneRadius * 2.4;
+    const spreadUp = Math.sin(coneAngle) * coneRadius * 1.8;
+
+    p.vx = vx * 0.35 + fwdX * shootSpeed + rightX * spreadRight;
+    p.vy = spreadUp;
+    p.vz = vz * 0.35 + fwdZ * shootSpeed + rightZ * spreadRight;
+    p.life = 0;
+    p.maxLife = isCore ? (0.06 + Math.random() * 0.07) : (0.09 + Math.random() * 0.09);
+    p.scale = isCore ? (0.24 + Math.random() * 0.16) : (0.38 + Math.random() * 0.28);
+  }
+
   private spawnSparks(pos: THREE.Vector3, vx: number, vz: number): void {
     for (let i = 0; i < 3; i++) {
       const s = this.sparkPool[this.sparkCursor];
@@ -1208,6 +1319,45 @@ export class RacingGameEngine {
       this.sparkInst.setMatrixAt(i, _dummy.matrix);
     }
     if (sparkDirty) this.sparkInst.instanceMatrix.needsUpdate = true;
+
+    let flameDirty = false;
+    for (let i = 0; i < this.nosFlamePool.length; i++) {
+      const p = this.nosFlamePool[i];
+      if (!p.active) continue;
+      flameDirty = true;
+      p.life += dt;
+      if (p.life >= p.maxLife) {
+        p.active = false;
+        _dummy.position.set(0, -50, 0);
+        _dummy.scale.setScalar(0.001);
+        _dummy.updateMatrix();
+        this.nosFlameInst.setMatrixAt(i, _dummy.matrix);
+        continue;
+      }
+      p.x += p.vx * dt;
+      p.y += p.vy * dt;
+      p.z += p.vz * dt;
+      const t = p.life / p.maxLife;
+      const sz = p.scale * (0.8 + t * 2.6) * (1 - t * 0.35);
+      _dummy.position.set(p.x, p.y, p.z);
+      _dummy.quaternion.copy(this.camera.quaternion);
+      _dummy.scale.setScalar(sz);
+      _dummy.updateMatrix();
+      this.nosFlameInst.setMatrixAt(i, _dummy.matrix);
+
+      if (p.core) {
+        _tempColor.set(t < 0.38 ? 0xf0f9ff : 0x38bdf8);
+      } else {
+        _tempColor.set(t < 0.35 ? 0x00d2ff : t < 0.72 ? 0x2563eb : 0x1e3a8a);
+      }
+      this.nosFlameInst.setColorAt(i, _tempColor);
+    }
+    if (flameDirty) {
+      this.nosFlameInst.instanceMatrix.needsUpdate = true;
+      if (this.nosFlameInst.instanceColor) {
+        this.nosFlameInst.instanceColor.needsUpdate = true;
+      }
+    }
   }
 
   private tick = (): void => {
@@ -1279,6 +1429,7 @@ export class RacingGameEngine {
           isDrifting: false,
           onKerb: false,
           nosActive: false,
+          isBurnout: false,
         });
         this.updateCamera(player, dt);
       }
@@ -1378,8 +1529,59 @@ export class RacingGameEngine {
           wheelSpinAngle: v.wheelSpinAngle,
         });
 
+        const isBurnout =
+          v.isBurnout ||
+          (Math.abs(v.forwardSpeed) < 4.0 &&
+            (v.isPlayer
+              ? this.inputState.throttle > 0.35 && (this.inputState.brake > 0.35 || this.inputState.handbrake)
+              : false));
+
+        // Burnout visual effect: dark tire marks & heavy billowing smoke when stationary with throttle + brake
+        if (isBurnout) {
+          const rearOffset = v.spec.wheelbase * 0.5;
+          const fwdX = -Math.sin(v.yaw);
+          const fwdZ = -Math.cos(v.yaw);
+          const rightX = Math.cos(v.yaw);
+          const rightZ = -Math.sin(v.yaw);
+
+          // Lay down dark rubber tire skidmarks under both rear tires
+          this.spawnSkidmark(
+            v.x - fwdX * rearOffset - rightX * 0.82,
+            v.y,
+            v.z - fwdZ * rearOffset - rightZ * 0.82,
+            v.yaw,
+            1.25
+          );
+          this.spawnSkidmark(
+            v.x - fwdX * rearOffset + rightX * 0.82,
+            v.y,
+            v.z - fwdZ * rearOffset + rightZ * 0.82,
+            v.yaw,
+            1.25
+          );
+
+          // Dense billowing clouds of white tire smoke rising from both rear tires
+          const bIntensity = v.burnoutIntensity || 0.95;
+          this.spawnBurnoutSmoke(
+            v.x - fwdX * rearOffset - rightX * 0.85,
+            v.y,
+            v.z - fwdZ * rearOffset - rightZ * 0.85,
+            bIntensity
+          );
+          this.spawnBurnoutSmoke(
+            v.x - fwdX * rearOffset + rightX * 0.85,
+            v.y,
+            v.z - fwdZ * rearOffset + rightZ * 0.85,
+            bIntensity
+          );
+
+          if (v.isPlayer) {
+            this.camShake = Math.max(this.camShake, 0.032 * bIntensity);
+          }
+        }
+
         // Twin rear tire skidmarks during drift or hard braking
-        if (emitSkids && ((v.isDrifting && v.speedKmh > 25) || (brakeAmt > 0.65 && v.speedKmh > 45))) {
+        if (emitSkids && !isBurnout && ((v.isDrifting && v.speedKmh > 25) || (brakeAmt > 0.65 && v.speedKmh > 45))) {
           const rearOffset = v.spec.wheelbase * 0.5;
           const fwdX = -Math.sin(v.yaw);
           const fwdZ = -Math.cos(v.yaw);
@@ -1403,7 +1605,7 @@ export class RacingGameEngine {
         }
 
         // Tire drift smoke
-        if (v.isDrifting && Math.random() < 0.72) {
+        if (v.isDrifting && !isBurnout && Math.random() < 0.72) {
           const rearOffset = v.spec.wheelbase * 0.5;
           const fwdX = -Math.sin(v.yaw);
           const fwdZ = -Math.cos(v.yaw);
@@ -1418,6 +1620,34 @@ export class RacingGameEngine {
             v.vz,
             0.9 + v.driftIntensity * 0.9
           );
+        }
+
+        // Visual flame effect at exhaust pipes using particle system triggered specifically when nosActive is true
+        if (v.nosActive) {
+          const halfL = v.spec.length * 0.5;
+          const fwdX = -Math.sin(v.yaw);
+          const fwdZ = -Math.cos(v.yaw);
+          const rightX = Math.cos(v.yaw);
+          const rightZ = -Math.sin(v.yaw);
+
+          const exOffsets =
+            v.spec.exhaustStyle === 'center_hex'
+              ? [-0.11, 0.11]
+              : v.spec.exhaustStyle === 'cannon'
+                ? [0.44]
+                : v.spec.exhaustStyle === 'dual_wide'
+                  ? [-0.52, 0.52]
+                  : [-0.56, -0.40, 0.40, 0.56];
+
+          for (const ex of exOffsets) {
+            const nozzleX = v.x - fwdX * (halfL + 0.08) + rightX * ex;
+            const nozzleY = v.y + 0.27;
+            const nozzleZ = v.z - fwdZ * (halfL + 0.08) + rightZ * ex;
+
+            // Spawn bright blue core flame and trailing conical emission plume
+            this.spawnNosFlame(nozzleX, nozzleY, nozzleZ, fwdX, fwdZ, rightX, rightZ, v.vx, v.vz, true);
+            this.spawnNosFlame(nozzleX, nozzleY, nozzleZ, fwdX, fwdZ, rightX, rightZ, v.vx, v.vz, false);
+          }
         }
 
         if (v.wallScraping && Math.random() < 0.85) {
@@ -1469,6 +1699,7 @@ export class RacingGameEngine {
           isDrifting: player.isDrifting,
           onKerb: player.onKerb,
           nosActive: player.nosActive,
+          isBurnout: player.isBurnout,
         });
 
         this.updateCamera(player, dt);
@@ -1671,14 +1902,43 @@ export class RacingGameEngine {
       this.camera.fov = THREE.MathUtils.damp(this.camera.fov, targetFov, 6, dt);
     }
 
-    // Apply decaying camera shake from kerbs / impacts / NOS
-    this.camShake = Math.max(0, this.camShake - dt * 1.8);
-    const totalShake = this.camShake + (player.nosActive ? 0.035 : 0);
+    // Dynamic Camera Shake System:
+    // 1. Decaying collision/impact trauma
+    this.camShake = Math.max(0, this.camShake - dt * 2.2);
+
+    // 2. High-speed turbulence & vibration: escalates non-linearly with vehicle speed
+    const speedShake = Math.pow(Math.max(0, player.speedKmh - 50) / 240, 1.75) * 0.058;
+
+    // 3. High-G turn shake: calculates lateral G-force loading and induces cornering vibration
+    const lateralG = Math.abs(player.angularVelocity * player.forwardSpeed) / 9.81;
+    const highGShake = Math.min(0.085, Math.max(0, lateralG - 0.65) * 0.046);
+    const driftShake = player.isDrifting ? player.driftIntensity * 0.026 : 0;
+
+    // 4. NOS boost surge
+    const nosShake = player.nosActive ? 0.046 : 0;
+
+    // 5. Burnout chassis shudder
+    const burnoutShake = player.isBurnout ? 0.034 * player.burnoutIntensity : 0;
+
+    // 6. Kerb rumble
+    const kerbShake = player.onKerb ? 0.038 : 0;
+
+    const totalShake =
+      this.camShake + speedShake + highGShake + driftShake + nosShake + burnoutShake + kerbShake;
 
     this.camera.position.copy(this.camPos);
     if (totalShake > 0.001) {
-      this.camera.position.x += (Math.random() - 0.5) * totalShake;
-      this.camera.position.y += (Math.random() - 0.5) * totalShake * 0.8;
+      const shakeTime = performance.now() * 0.075;
+      const noiseX = Math.sin(shakeTime * 1.8) * totalShake * 0.45 + (Math.random() - 0.5) * totalShake * 0.55;
+      const noiseY = Math.cos(shakeTime * 2.2) * totalShake * 0.4 + (Math.random() - 0.5) * totalShake * 0.45;
+      const noiseZ = Math.sin(shakeTime * 1.3) * totalShake * 0.28;
+      this.camera.position.x += noiseX;
+      this.camera.position.y += noiseY;
+      this.camera.position.z += noiseZ;
+
+      // Subtle roll tremor during high-G turns or extreme speeds
+      const rollTremor = Math.sin(shakeTime * 2.7) * totalShake * 0.012 + (Math.random() - 0.5) * totalShake * 0.009;
+      this.camera.rotation.z += rollTremor;
     }
 
     this.camera.lookAt(this.camLook);
@@ -1780,6 +2040,8 @@ export class RacingGameEngine {
     (this.smokeInst.material as THREE.Material).dispose();
     this.sparkInst.geometry.dispose();
     (this.sparkInst.material as THREE.Material).dispose();
+    this.nosFlameInst.geometry.dispose();
+    (this.nosFlameInst.material as THREE.Material).dispose();
     this.skidInst.geometry.dispose();
     (this.skidInst.material as THREE.Material).dispose();
     this.rainInst.geometry.dispose();

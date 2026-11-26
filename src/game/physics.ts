@@ -40,6 +40,8 @@ export interface VehiclePhysicsState {
   // Drift & surface
   isDrifting: boolean;
   driftIntensity: number; // 0..1
+  isBurnout: boolean;
+  burnoutIntensity: number; // 0..1
   onKerb: boolean;
   wallScraping: boolean;
   wallScrapePos: THREE.Vector3;
@@ -104,6 +106,8 @@ export function createVehicleState(params: {
     nosActive: false,
     isDrifting: false,
     driftIntensity: 0,
+    isBurnout: false,
+    burnoutIntensity: 0,
     onKerb: false,
     wallScraping: false,
     wallScrapePos: new THREE.Vector3(),
@@ -260,13 +264,26 @@ export function stepVehiclePhysics(
     v.shiftTimer = Math.max(0, v.shiftTimer - dt);
   }
 
-  if (vLong < -0.6 && input.brake > 0.2) {
+  // Burnout detection: car is stationary or near-stationary, and both throttle and brake/handbrake are pressed
+  const isBurnoutActive = absSpeed < 4.5 && input.throttle > 0.35 && (input.brake > 0.35 || input.handbrake);
+  v.isBurnout = isBurnoutActive;
+  v.burnoutIntensity = isBurnoutActive
+    ? Math.min(1.0, input.throttle * (input.brake > 0.35 ? 1.0 : 0.88))
+    : 0;
+
+  if (v.isBurnout) {
+    v.gear = 1;
+    // Engine screams at redline with aggressive limiter oscillation
+    const revLimiter = Math.sin(raceTimeMs * 0.055) * 160 + (Math.random() - 0.5) * 90;
+    const targetRpm = THREE.MathUtils.clamp(spec.redlineRpm * 0.94 + revLimiter, 1200, spec.redlineRpm + 280);
+    v.rpm = THREE.MathUtils.lerp(v.rpm, targetRpm, Math.min(1, dt * 16));
+  } else if (vLong < -0.6 && input.brake > 0.2) {
     v.gear = 0; // Reverse
   } else if (v.gear === 0 && input.throttle > 0.1 && vLong >= -0.5) {
     v.gear = 1;
   }
 
-  if (v.gear >= 1) {
+  if (!v.isBurnout && v.gear >= 1) {
     const numGears = spec.gearRatios.length;
     const gearTopSpeed = (maxSpeedMs * v.gear) / numGears;
     const gearMinSpeed = v.gear === 1 ? 0 : (maxSpeedMs * (v.gear - 1)) / numGears * 0.78;
@@ -284,7 +301,7 @@ export function stepVehiclePhysics(
     const gearProgress = THREE.MathUtils.clamp((Math.max(0, vLong) - low) / Math.max(1, high - low), 0, 1);
     const targetRpm = THREE.MathUtils.lerp(1800, spec.redlineRpm, gearProgress) + (input.throttle * 650);
     v.rpm = THREE.MathUtils.lerp(v.rpm, Math.min(spec.redlineRpm + 250, Math.max(950, targetRpm)), Math.min(1, dt * 12));
-  } else {
+  } else if (!v.isBurnout) {
     v.rpm = THREE.MathUtils.lerp(v.rpm, 1400 + Math.abs(vLong) * 140, Math.min(1, dt * 10));
   }
 
@@ -293,27 +310,32 @@ export function stepVehiclePhysics(
   const speedRatio = THREE.MathUtils.clamp(vLong / maxSpeedMs, 0, 1.15);
   const torqueFactor = vLong < 12 ? 1.12 : Math.max(0.2, 1.05 - speedRatio * 0.72);
 
-  if (input.throttle > 0.01) {
-    const shiftDip = v.shiftTimer > 0 ? 0.55 : 1.0;
-    longForce += input.throttle * spec.maxEngineForce * torqueFactor * shiftDip;
-  }
-
-  if (v.nosActive) {
-    longForce += spec.nosBoostForce * (vLong < maxSpeedMs ? 1.0 : 0.25);
-  }
-
-  if (input.brake > 0.01) {
-    if (vLong > 1.2) {
-      // Forward braking modulated by road surface grip
-      longForce -= input.brake * spec.brakeForce * THREE.MathUtils.lerp(0.80, 1.0, gripMultiplier);
-    } else {
-      // Reverse gear
-      longForce -= input.brake * spec.maxEngineForce * 0.52;
+  if (v.isBurnout) {
+    // Front brakes clamp the vehicle stationary while rear tires break traction
+    longForce = 0;
+  } else {
+    if (input.throttle > 0.01) {
+      const shiftDip = v.shiftTimer > 0 ? 0.55 : 1.0;
+      longForce += input.throttle * spec.maxEngineForce * torqueFactor * shiftDip;
     }
-  }
 
-  if (input.handbrake && absSpeed > 2) {
-    longForce -= Math.sign(vLong) * spec.brakeForce * 0.35 * THREE.MathUtils.lerp(0.82, 1.0, gripMultiplier);
+    if (v.nosActive) {
+      longForce += spec.nosBoostForce * (vLong < maxSpeedMs ? 1.0 : 0.25);
+    }
+
+    if (input.brake > 0.01) {
+      if (vLong > 1.2) {
+        // Forward braking modulated by road surface grip
+        longForce -= input.brake * spec.brakeForce * THREE.MathUtils.lerp(0.80, 1.0, gripMultiplier);
+      } else {
+        // Reverse gear
+        longForce -= input.brake * spec.maxEngineForce * 0.52;
+      }
+    }
+
+    if (input.handbrake && absSpeed > 2) {
+      longForce -= Math.sign(vLong) * spec.brakeForce * 0.35 * THREE.MathUtils.lerp(0.82, 1.0, gripMultiplier);
+    }
   }
 
   // Aerodynamic drag & rolling resistance
@@ -400,13 +422,21 @@ export function stepVehiclePhysics(
     v.vz *= scale;
   }
 
-  // Integrate world position
-  v.x += v.vx * dt;
-  v.z += v.vz * dt;
-  v.wheelSpinAngle += (newVLong / 0.355) * dt;
+  // Integrate world position & wheel spin
+  if (v.isBurnout) {
+    v.vx *= Math.max(0, 1 - dt * 18);
+    v.vz *= Math.max(0, 1 - dt * 18);
+    v.wheelSpinAngle += (42 + v.burnoutIntensity * 55) * dt;
+  } else {
+    v.x += v.vx * dt;
+    v.z += v.vz * dt;
+    v.wheelSpinAngle += (newVLong / 0.355) * dt;
+  }
 
   // Suspension pitch (squat on accel, dive on brake) & body roll (lateral G lean)
-  const targetPitch = THREE.MathUtils.clamp(-longAccel * 0.0028, -0.045, 0.045);
+  const targetPitch = v.isBurnout
+    ? -0.016 * v.burnoutIntensity
+    : THREE.MathUtils.clamp(-longAccel * 0.0028, -0.045, 0.045);
   const lateralG = (v.angularVelocity * vLong) / 9.81;
   const targetRoll = THREE.MathUtils.clamp(lateralG * 0.032, -0.068, 0.068);
   v.pitchRad = THREE.MathUtils.lerp(v.pitchRad, targetPitch, Math.min(1, dt * 10));
