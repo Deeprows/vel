@@ -1,10 +1,12 @@
 export type CarId =
+  | 'diablo_sv'
   | 'valkyrie'
   | 'spectre'
   | 'apex_rse'
   | 'cobalt_m4'
   | 'ronin_rx'
-  | 'titan_gt';
+  | 'titan_gt'
+  | 'stratos_lm';
 
 export type TrackId = 'midnight_bay' | 'redline_canyon' | 'neon_docks';
 
@@ -57,7 +59,15 @@ export interface CarSpec {
   width: number;
   height: number;
   wingStyle: 'gt' | 'ducktail' | 'twin' | 'muscle';
-  bodyStyle: 'tuner' | 'hypercar' | 'ev_gt' | 'coupe' | 'rotary' | 'muscle';
+  bodyStyle:
+    | 'wedge_exotic'
+    | 'tuner'
+    | 'hypercar'
+    | 'ev_gt'
+    | 'coupe'
+    | 'rotary'
+    | 'muscle'
+    | 'le_mans';
   exhaustStyle: 'quad' | 'center_hex' | 'cannon' | 'dual_wide';
   // Display stats (0-100)
   stats: {

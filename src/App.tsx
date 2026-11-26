@@ -98,7 +98,7 @@ export default function App() {
   const canvasMountRef = useRef<HTMLDivElement | null>(null);
   const engineRef = useRef<RacingGameEngine | null>(null);
 
-  const [selectedCarId, setSelectedCarId] = useState<CarId>('valkyrie');
+  const [selectedCarId, setSelectedCarId] = useState<CarId>('diablo_sv');
   const [selectedTrackId, setSelectedTrackId] = useState<TrackId>('midnight_bay');
   const [selectedPaintId, setSelectedPaintId] = useState<string>(PAINTS[0].id);
   const [selectedUnderglowId, setSelectedUnderglowId] = useState<string>(UNDERGLOWS[0].id);

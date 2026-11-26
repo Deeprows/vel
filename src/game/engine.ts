@@ -94,7 +94,7 @@ export class RacingGameEngine {
   private hudEmitAccum = 0;
 
   // Game Config
-  private selectedCarId: CarId = 'valkyrie';
+  private selectedCarId: CarId = 'diablo_sv';
   private selectedTrackId: TrackId = 'midnight_bay';
   private selectedPaintId = PAINTS[0].id;
   private selectedUnderglowId = UNDERGLOWS[0].id;
@@ -392,9 +392,9 @@ export class RacingGameEngine {
     // Spawn 3 AI Rivals in Circuit mode
     if (targetPhase === 'countdown' && this.raceMode === 'circuit') {
       const rivalConfigs = [
-        { id: 'rival_1', name: 'K. Takahashi', car: CARS[1], paint: PAINTS[1], startT: 0.991, lane: 3.4, skill: 0.93 },
-        { id: 'rival_2', name: 'M. Vance', car: CARS[2], paint: PAINTS[2], startT: 0.988, lane: 3.4, skill: 0.97 },
-        { id: 'rival_3', name: 'S. Kira', car: CARS[0], paint: PAINTS[3], startT: 0.982, lane: -3.4, skill: 0.90 },
+        { id: 'rival_1', name: 'K. Takahashi', car: CARS[2], paint: PAINTS[1], startT: 0.991, lane: 3.4, skill: 0.93 },
+        { id: 'rival_2', name: 'M. Vance', car: CARS[7], paint: PAINTS[2], startT: 0.988, lane: 3.4, skill: 0.97 },
+        { id: 'rival_3', name: 'S. Kira', car: CARS[6], paint: PAINTS[3], startT: 0.982, lane: -3.4, skill: 0.90 },
       ];
 
       for (const rc of rivalConfigs) {

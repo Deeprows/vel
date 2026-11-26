@@ -344,7 +344,19 @@ export class RaceAudioEngine {
     let harmonicRatio = 1.5;
     let whineAmt = 0;
 
-    if (carId === 'spectre') {
+    if (carId === 'diablo_sv') {
+      // Classic 5.7L naturally aspirated V12 exotic howl
+      baseLow = 50;
+      baseSpan = 205;
+      harmonicRatio = 1.5;
+      whineAmt = 0.018 * rpmNorm;
+    } else if (carId === 'stratos_lm') {
+      // Endurance hypercar high-RPM screamer + hybrid MGU whine
+      baseLow = 52;
+      baseSpan = 218;
+      harmonicRatio = 1.667;
+      whineAmt = 0.048 * rpmNorm;
+    } else if (carId === 'spectre') {
       // High-revving V10 screamer
       baseLow = 48;
       baseSpan = 195;

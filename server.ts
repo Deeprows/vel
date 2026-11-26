@@ -37,12 +37,14 @@ const SESSION_SECRET =
 
 const VALID_TRACKS = new Set<TrackId>(['midnight_bay', 'redline_canyon', 'neon_docks']);
 const VALID_CARS = new Set<CarId>([
+  'diablo_sv',
   'valkyrie',
   'spectre',
   'apex_rse',
   'cobalt_m4',
   'ronin_rx',
   'titan_gt',
+  'stratos_lm',
 ]);
 const VALID_SCOPES = new Set<RoomScope>(['online', 'wifi']);
 const MAX_PLAYERS_PER_ROOM = 4;
