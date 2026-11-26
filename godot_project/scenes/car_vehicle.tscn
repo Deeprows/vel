@@ -169,5 +169,6 @@ mesh = SubResource("CylinderMesh_rim")
 
 [node name="ChaseCam" type="Camera3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 0.965926, 0.258819, 0, -0.258819, 0.965926, 0, 2.65, 7.2)
+current = true
 fov = 66.0
 far = 1200.0
