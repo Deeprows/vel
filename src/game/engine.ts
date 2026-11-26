@@ -533,7 +533,7 @@ export class RacingGameEngine {
       }
     }
 
-    if (nextWeather !== 'light_rain') {
+    if (nextWeather !== 'light_rain' && this.rainInst) {
       _dummy.position.set(0, -100, 0);
       _dummy.rotation.set(0, 0, 0);
       _dummy.scale.setScalar(0.001);
