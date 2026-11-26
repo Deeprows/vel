@@ -72,56 +72,76 @@ export const TouchControls: React.FC<TouchControlsProps> = ({
     syncFromPointers();
   };
 
+  const wheelRef = useRef<HTMLDivElement>(null);
+  const [steerVal, setSteerVal] = useState(0);
+
+  const handleWheelMove = (clientX: number) => {
+    if (!wheelRef.current) return;
+    const rect = wheelRef.current.getBoundingClientRect();
+    const centerX = rect.left + rect.width / 2;
+    const val = Math.max(-1, Math.min(1, (clientX - centerX) / (rect.width * 0.45)));
+    setSteerVal(val);
+    const next: TouchInputValues = {
+      ...pressed,
+      left: val < -0.12,
+      right: val > 0.12,
+    };
+    setPressed(next);
+    onChange(next);
+  };
+
+  const handleWheelEnd = () => {
+    setSteerVal(0);
+    const next: TouchInputValues = {
+      ...pressed,
+      left: false,
+      right: false,
+    };
+    setPressed(next);
+    onChange(next);
+  };
+
   return (
     <div className="pointer-events-none fixed inset-x-0 bottom-0 z-20 flex items-end justify-between px-2.5 pb-3 sm:px-6 sm:pb-5">
-      {/* Left Thumb Zone: Steering Paddles or Tilt Indicator */}
-      <div className="pointer-events-auto flex items-center gap-2 sm:gap-3">
-        {controlScheme === 'buttons' ? (
-          <>
-            <button
-              type="button"
-              aria-label="Steer Left"
-              onPointerDown={handleDown('left')}
-              onPointerUp={handleUp}
-              onPointerCancel={handleUp}
-              onContextMenu={(e) => e.preventDefault()}
-              className={`touch-control w-14 h-16 sm:w-20 sm:h-20 rounded-2xl border flex items-center justify-center transition-transform duration-75 ${
-                pressed.left
-                  ? 'bg-amber-500/35 border-amber-400 text-amber-200 scale-95'
-                  : 'bg-[#0B0F19]/80 border-white/15 text-slate-200'
-              }`}
-            >
-              <ChevronLeft className="w-7 h-7 sm:w-8 sm:h-8" />
-            </button>
-            <button
-              type="button"
-              aria-label="Steer Right"
-              onPointerDown={handleDown('right')}
-              onPointerUp={handleUp}
-              onPointerCancel={handleUp}
-              onContextMenu={(e) => e.preventDefault()}
-              className={`touch-control w-14 h-16 sm:w-20 sm:h-20 rounded-2xl border flex items-center justify-center transition-transform duration-75 ${
-                pressed.right
-                  ? 'bg-amber-500/35 border-amber-400 text-amber-200 scale-95'
-                  : 'bg-[#0B0F19]/80 border-white/15 text-slate-200'
-              }`}
-            >
-              <ChevronRight className="w-7 h-7 sm:w-8 sm:h-8" />
-            </button>
-          </>
-        ) : (
-          <div className="bg-[#0B0F19]/80 border border-white/12 rounded-xl px-3.5 py-2.5 flex flex-col items-center gap-1 min-w-[116px]">
-            <span className="text-[11px] font-medium text-slate-300">Tilt Steer</span>
-            <div className="w-24 h-2 bg-slate-800 rounded-sm relative overflow-hidden">
-              <div
-                className="absolute top-0 bottom-0 w-3 bg-amber-400 rounded-sm"
-                style={{
-                  left: `calc(${Math.max(8, Math.min(92, 50 + (tiltAngleDeg / 35) * 42))}% - 6px)`,
-                }}
-              />
+      {/* Left Thumb Zone: Exact Virtual Steering Wheel matching reference image */}
+      <div className="pointer-events-auto flex items-center">
+        <div
+          ref={wheelRef}
+          onPointerDown={(e) => {
+            e.preventDefault();
+            onFirstTouch();
+            try {
+              e.currentTarget.setPointerCapture(e.pointerId);
+            } catch {}
+            handleWheelMove(e.clientX);
+          }}
+          onPointerMove={(e) => {
+            if (e.buttons > 0 || e.pointerType === 'touch') {
+              handleWheelMove(e.clientX);
+            }
+          }}
+          onPointerUp={(e) => {
+            e.preventDefault();
+            handleWheelEnd();
+          }}
+          onPointerCancel={(e) => {
+            e.preventDefault();
+            handleWheelEnd();
+          }}
+          className="relative w-28 h-28 sm:w-36 sm:h-36 rounded-full bg-slate-950/75 border-3 border-slate-600/80 shadow-xl flex items-center justify-center select-none touch-none cursor-pointer"
+        >
+          <div
+            className="absolute inset-1.5 rounded-full border-5 border-slate-300/90 flex items-center justify-center transition-transform duration-75 shadow-md"
+            style={{ transform: `rotate(${steerVal * 80}deg)` }}
+          >
+            <div className="absolute w-2.5 h-10 bg-slate-400/90 rounded-sm top-2" />
+            <div className="absolute w-10 h-2.5 bg-slate-400/90 rounded-sm left-2.5 bottom-4 -rotate-30" />
+            <div className="absolute w-10 h-2.5 bg-slate-400/90 rounded-sm right-2.5 bottom-4 rotate-30" />
+            <div className="w-9 h-9 rounded-full bg-slate-900 border-2 border-slate-500 shadow-inner flex items-center justify-center">
+              <div className="w-3 h-3 rounded-full bg-cyan-400 shadow-md" />
             </div>
           </div>
-        )}
+        </div>
       </div>
 
       {/* Right Thumb Zone: Drift + NOS + Brake/Reverse + Gas */}

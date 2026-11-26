@@ -864,8 +864,18 @@ export default function App() {
             )}
           </div>
 
-          {/* Top-Right: Mini-map + Quick Action Buttons (>=44px touch targets) */}
+          {/* Top-Right: Mini-map + Tachometer + Quick Action Buttons */}
           <div className="fixed top-3 right-3 sm:top-5 sm:right-5 z-20 flex items-start gap-2">
+            <div className="scale-[0.82] sm:scale-95 origin-top-right">
+              <Tachometer
+                speedKmh={hud.speedKmh}
+                rpm={hud.rpm}
+                redlineRpm={hud.redlineRpm}
+                gear={hud.gear}
+                nos={hud.nos}
+                isNosActive={hud.isNosActive}
+              />
+            </div>
             <div>
               <Minimap trackPoints={minimapPoints} racers={hud.racers} />
             </div>
@@ -934,21 +944,7 @@ export default function App() {
             </div>
           )}
 
-          {/* Bottom-Center Tachometer & Speedometer */}
-          <div
-            className={`pointer-events-none fixed z-10 left-1/2 -translate-x-1/2 ${
-              showTouchPad ? 'bottom-32 sm:bottom-3' : 'bottom-4 sm:bottom-6'
-            }`}
-          >
-            <Tachometer
-              speedKmh={hud.speedKmh}
-              rpm={hud.rpm}
-              redlineRpm={hud.redlineRpm}
-              gear={hud.gear}
-              nos={hud.nos}
-              isNosActive={hud.isNosActive}
-            />
-          </div>
+
 
           {/* Desktop subtle keyboard hint when touch pedals are hidden */}
           {!showTouchPad && (

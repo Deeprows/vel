@@ -276,6 +276,7 @@ export const CARS: CarSpec[] = [
 ];
 
 export const PAINTS: PaintOption[] = [
+  { id: 'electric_cyan', name: 'Electric Cyan', hex: '#06B6D4', metalness: 0.92, roughness: 0.12, clearcoat: 1.0 },
   { id: 'solar_amber', name: 'Solar Amber', hex: '#F59E0B', metalness: 0.82, roughness: 0.16, clearcoat: 1.0 },
   { id: 'crimson_rush', name: 'Crimson Rush', hex: '#DC2626', metalness: 0.78, roughness: 0.18, clearcoat: 1.0 },
   { id: 'cobalt_night', name: 'Cobalt Night', hex: '#2563EB', metalness: 0.88, roughness: 0.14, clearcoat: 1.0 },
